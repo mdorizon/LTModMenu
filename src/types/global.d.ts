@@ -18,6 +18,13 @@ export interface Waypoint {
   x: number;
   y: number;
   direction: string;
+  map?: string;
+}
+
+export interface GameScene {
+  name: string;
+  fastTravelSpawnPosition?: { x: number; y: number; direction: string };
+  [key: string]: unknown;
 }
 
 export interface PlayerPos {
@@ -56,6 +63,11 @@ export interface GameApp {
   currentCamera: {
     moveCameraToPlayer: (instant: boolean) => void;
   };
+  currentScene?: GameScene;
+  currentServerRoomId?: string;
+  interactables?: Record<string, { onInteract?: () => void }>;
+  loadScene?: (opts: { scene: GameScene }) => void;
+  backToMainScene?: () => void;
 }
 
 declare global {
@@ -72,6 +84,8 @@ declare global {
     __solveFishingChallenge: (challenge: string) => string;
     __autoSolveChallenge: (challenge: string) => boolean;
     __forceEndMinigame: () => boolean;
+    __sceneCache: Map<string, GameScene>;
+    __wpRequire?: (id: number) => any;
     __ltSpyRetry?: () => boolean;
     webpackChunk_N_E: unknown[];
   }

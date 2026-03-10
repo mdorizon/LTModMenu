@@ -1,5 +1,5 @@
 import { mkHeader, bindNav, type RenderFn } from "../components";
-import { doTP, getPos } from "../../game/player-actions";
+import { getPos, getCurrentMap, doInterMapTP } from "../../game/player-actions";
 import { saveData } from "../../storage/storage";
 
 export function renderTP(
@@ -19,6 +19,7 @@ export function renderTP(
         w.name +
         "</span>" +
         '<span class="lt-sub">' +
+        (w.map && w.map !== "unknown" ? w.map + " - " : "") +
         w.x +
         ", " +
         w.y +
@@ -44,12 +45,12 @@ export function renderTP(
 
   wps.forEach((w, i) => {
     document.getElementById("lt-wtp-" + i)!.onclick = () => {
-      const ok = doTP(w.x, w.y, w.direction || "down");
+      const result = doInterMapTP(w.x, w.y, w.direction || "down", w.map);
       const st = document.getElementById("lt-tp-status")!;
-      st.textContent = ok
+      st.textContent = result.success
         ? "Teleported to " + w.name
-        : "Error: gameApp not captured";
-      st.style.color = ok ? "#5ad85a" : "#f05050";
+        : result.message;
+      st.style.color = result.success ? "#5ad85a" : "#f05050";
     };
     document.getElementById("lt-wdel-" + i)!.onclick = () => {
       window.__waypoints.splice(i, 1);
@@ -69,6 +70,7 @@ export function renderTP(
         x: pos.x,
         y: pos.y,
         direction: pos.direction || "down",
+        map: getCurrentMap(),
       });
       saveData("waypoints", window.__waypoints);
       console.log("[LTModMenu] Waypoint saved:", name, pos.x, pos.y);
