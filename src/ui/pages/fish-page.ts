@@ -3,19 +3,9 @@ import { fishingLoop, isFishingLoopRunning, updateHUD } from "../../bot/fishing-
 import { saveData } from "../../storage/storage";
 
 export function renderFish(hud: HTMLElement, renderMainFn: RenderFn, pages: Record<string, RenderFn>): void {
-  const paused = window.__botPaused;
   hud.innerHTML =
     mkHeader("Auto Fishing", true) +
     '<div class="lt-body" style="padding:4px 0;">' +
-    '<div class="lt-stat-row" style="padding:10px 14px;">' +
-    '<span style="color:#6a6a9a;font-size:16px;">Session <span id="lt-time">00:00:00</span></span>' +
-    '<button class="lt-action ' +
-    (paused ? "lt-success" : "lt-danger") +
-    '" id="lt-toggle" style="width:auto;margin:0;padding:6px 18px;font-size:16px;">' +
-    (paused ? "START" : "STOP") +
-    "</button>" +
-    "</div>" +
-    '<div class="lt-sep"></div>' +
     '<div class="lt-stat-row" style="font-size:20px;font-weight:700;padding:8px 14px;color:#e0d8f0;">' +
     '<span>Total</span><span id="lt-total">0</span></div>' +
     '<div class="lt-stat-row" style="color:#f0c040;font-weight:600;font-size:18px;">' +
@@ -30,6 +20,9 @@ export function renderFish(hud: HTMLElement, renderMainFn: RenderFn, pages: Reco
     '<div class="lt-stat-row" style="color:#6a6a9a;"><span>Event</span><span id="lt-event">0</span></div>' +
     '<div class="lt-sep"></div>' +
     '<div class="lt-status" id="lt-last" style="font-size:14px;"></div>' +
+    '<button class="lt-action ' + (window.__botPaused ? "lt-success" : "lt-danger") + '" id="lt-toggle">' +
+    (window.__botPaused ? "START" : "STOP") +
+    '</button>' +
     '<button class="lt-action lt-muted" id="lt-reset">Reset Stats</button>' +
     "</div>";
   bindNav(renderMainFn, pages);
