@@ -57,9 +57,11 @@ export function initHUD(): void {
         (e.target as HTMLElement).parentElement!.id === "lt-header")
     ) {
       dragging = true;
-      dx = e.clientX - hud.offsetLeft;
-      dy = e.clientY - hud.offsetTop;
+      const rect = hud.getBoundingClientRect();
+      hud.style.top = rect.top + "px";
       hud.style.transform = "none";
+      dx = e.clientX - rect.left;
+      dy = e.clientY - rect.top;
     }
   });
 
