@@ -12,7 +12,7 @@ export const CSS = [
   "#lt-hud .lt-header span.lt-title { font-size:22px;flex:1;color:#b8b0d8;letter-spacing:0.5px; }",
   "#lt-hud .lt-header span.lt-ver { font-size:14px;color:#6a6a9a; }",
   "#lt-hud .lt-header button.lt-back-btn { border:none;background:none;color:#8a8abe;",
-  "  cursor:pointer;font-size:22px;padding:0 10px 0 0;font-family:inherit; }",
+  "  cursor:pointer;font-size:32px;padding:0 14px 2px 0;font-family:inherit;line-height:1;vertical-align:middle; }",
   "#lt-hud .lt-header button.lt-back-btn:hover { color:#c8c0e0; }",
   "#lt-hud .lt-body { padding:6px 0; }",
   "#lt-hud .lt-item { display:flex;align-items:center;justify-content:space-between;",
