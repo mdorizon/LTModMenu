@@ -40,15 +40,15 @@ Suivi detaille avec sauvegarde automatique (toutes les 30s via localStorage) :
 
 54 especes repertoriees avec poids min/max et or de base :
 
-| Rarete | Nombre | Exemples |
-|--------|--------|----------|
-| Common | 12 | Bass, Cod, Shrimp, Lobster... |
-| Uncommon | 11 | Puffer Fish, Tuna, Seahorse... |
-| Rare | 7 | Goldfish, Koi Carp, Blobfish... |
-| Epic | 11 | Blue Lobster, Tiger Shark, Octopus... |
-| Legendary | 10 | Golden Goldfish, Cthulhu, Megalodon... |
-| Secret | 7 | Goblin Shark, Ghost Shark, Barreleye Fish... |
-| Event | 12 | Halloween (Vampire Squid, Nessie...) + Christmas (Narwhal, Walrus...) |
+| Rarete    | Nombre | Exemples                                                              |
+| --------- | ------ | --------------------------------------------------------------------- |
+| Common    | 12     | Bass, Cod, Shrimp, Lobster...                                         |
+| Uncommon  | 11     | Puffer Fish, Tuna, Seahorse...                                        |
+| Rare      | 7      | Goldfish, Koi Carp, Blobfish...                                       |
+| Epic      | 11     | Blue Lobster, Tiger Shark, Octopus...                                 |
+| Legendary | 10     | Golden Goldfish, Cthulhu, Megalodon...                                |
+| Secret    | 7      | Goblin Shark, Ghost Shark, Barreleye Fish...                          |
+| Event     | 12     | Halloween (Vampire Squid, Nessie...) + Christmas (Narwhal, Walrus...) |
 
 ### Teleportation
 
@@ -82,25 +82,80 @@ Theme sombre Lofi Town (navy + lavande), police custom HabitSmall.
 
 ## Variables globales (console)
 
-| Variable | Description |
-|----------|-------------|
-| `window.__gameWS` | Connexion WebSocket |
-| `window.__gameApp` | Instance App du jeu |
-| `window.__playerPos` | Derniere position connue |
-| `window.__fishStats` | Statistiques de peche |
-| `window.__waypoints` | Waypoints sauvegardes |
-| `window.__botPaused` | Etat pause du bot |
+| Variable                            | Description                        |
+| ----------------------------------- | ---------------------------------- |
+| `window.__gameWS`                   | Connexion WebSocket                |
+| `window.__gameApp`                  | Instance App du jeu                |
+| `window.__playerPos`                | Derniere position connue           |
+| `window.__fishStats`                | Statistiques de peche              |
+| `window.__waypoints`                | Waypoints sauvegardes              |
+| `window.__botPaused`                | Etat pause du bot                  |
 | `window.__solveFishingChallenge(c)` | Resoudre un challenge manuellement |
-| `window.__forceEndMinigame()` | Forcer la fin du minigame |
+| `window.__forceEndMinigame()`       | Forcer la fin du minigame          |
+
+## Developpement
+
+Le projet utilise TypeScript + Webpack. Le code source est dans `src/`, le build genere `dist/ltmodmenu.user.js`.
+
+### Prerequis
+
+```bash
+bun install
+```
+
+### Commandes
+
+| Commande        | Description                                     |
+| --------------- | ----------------------------------------------- |
+| `bun run build` | Compile le projet vers `dist/ltmodmenu.user.js` |
+| `bun run watch` | Recompile automatiquement a chaque modification |
+| `bun run clean` | Supprime le dossier `dist/`                     |
+
+### Structure du projet
+
+```
+src/
+├── index.ts                 # Point d'entree
+├── types/
+│   └── global.d.ts          # Types globaux (Window, FishStats, GameApp...)
+├── data/
+│   └── fish-database.ts     # Base de donnees 54 poissons
+├── storage/
+│   └── storage.ts           # localStorage helpers + auto-save
+├── game/
+│   ├── fish-utils.ts        # calculateGold, getRarity
+│   ├── challenge-solver.ts  # FNV-1a challenge solver
+│   ├── webpack-spy.ts       # Hook webpackChunk_N_E
+│   ├── websocket-hook.ts    # Hook WebSocket natif
+│   └── player-actions.ts    # TP, sit, fish, wsSend, gameClick
+├── bot/
+│   └── fishing-loop.ts      # Boucle de peche auto
+└── ui/
+    ├── styles.ts            # CSS du menu
+    ├── components.ts        # mkHeader, mkItem, bindNav
+    ├── hud.ts               # Init HUD, drag, timer, retry
+    └── pages/
+        ├── main-page.ts     # Page principale
+        ├── poi-page.ts      # Points d'interet
+        ├── tp-page.ts       # Waypoints
+        ├── actions-page.ts  # Actions joueur
+        └── fish-page.ts     # Auto fishing + stats
+```
 
 ## Fichiers
 
-| Fichier | Description |
-|---------|-------------|
-| `ltmodmenu.user.js` | Userscript principal (mod menu) |
-| `bot_playwright.py` | Bot de peche alternatif (Playwright/WebKit) |
-| `calibrate_browser.py` | Calibration pour le bot Playwright |
-| `fishing_bot.py` | Bot desktop (pyautogui/mss) |
-| `calibrate.py` | Calibration desktop |
-| `config.json` | Positions calibrees |
-| `session/` | Session de connexion sauvegardee |
+| Fichier                | Description                                 |
+| ---------------------- | ------------------------------------------- |
+| `ltmodmenu.user.js`    | Userscript principal (mod menu)             |
+| `bot_playwright.py`    | Bot de peche alternatif (Playwright/WebKit) |
+| `calibrate_browser.py` | Calibration pour le bot Playwright          |
+| `fishing_bot.py`       | Bot desktop (pyautogui/mss)                 |
+| `calibrate.py`         | Calibration desktop                         |
+| `config.json`          | Positions calibrees                         |
+| `session/`             | Session de connexion sauvegardee            |
+
+## Contributeurs
+
+<a href="https://github.com/mdorizon/LTModMenu/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=mdorizon/LTModMenu" />
+</a>
