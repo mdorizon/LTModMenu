@@ -62,6 +62,18 @@ Suivi detaille avec sauvegarde automatique (toutes les 30s via localStorage) :
 - **Forcer la peche** — lance l'animation de peche a la position actuelle
 - **Se lever** — retour en position debout (sans cooldown)
 
+## Raccourcis clavier
+
+| Touche | Action                                  |
+| ------ | --------------------------------------- |
+| `1`    | Ouvrir / fermer le mod menu (toggle)    |
+| `2`    | Monter dans la liste (element precedent)|
+| `3`    | Descendre dans la liste (element suivant)|
+| `4`    | Selectionner / activer l'element        |
+| `5`    | Retour (page precedente)                |
+
+Les raccourcis sont desactives lorsqu'un champ de saisie (input, textarea) est actif.
+
 ## Interface
 
 Menu draggable fixe sur la gauche de l'ecran avec 4 sections :

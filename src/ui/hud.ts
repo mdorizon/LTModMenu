@@ -116,6 +116,81 @@ export function initHUD(): void {
     }
   }, 1000);
 
+  // ── Keyboard shortcuts ──
+  let kbIndex = -1;
+
+  function getNavigableItems(): HTMLElement[] {
+    return Array.from(hud.querySelectorAll<HTMLElement>(".lt-item, .lt-action"));
+  }
+
+  function clearKbFocus(): void {
+    hud.querySelectorAll(".lt-kb-focus").forEach((el) => el.classList.remove("lt-kb-focus"));
+  }
+
+  function setKbFocus(index: number): void {
+    const items = getNavigableItems();
+    if (items.length === 0) return;
+    clearKbFocus();
+    kbIndex = ((index % items.length) + items.length) % items.length;
+    items[kbIndex].classList.add("lt-kb-focus");
+    items[kbIndex].scrollIntoView({ block: "nearest" });
+  }
+
+  // Reset keyboard focus when page content changes
+  let restoreIndex = -1;
+  const observer2 = new MutationObserver(() => {
+    if (restoreIndex >= 0) {
+      const idx = restoreIndex;
+      restoreIndex = -1;
+      setKbFocus(idx);
+    } else {
+      kbIndex = -1;
+    }
+  });
+  observer2.observe(hud, { childList: true, subtree: true });
+
+  document.addEventListener("keydown", (e) => {
+    const tag = (e.target as HTMLElement).tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement).isContentEditable) return;
+
+    if (e.key === "1") {
+      const isHidden = hud.style.display === "none";
+      hud.style.display = isHidden ? "" : "none";
+      if (!isHidden) {
+        kbIndex = -1;
+        clearKbFocus();
+      }
+      return;
+    }
+
+    // Other shortcuts only work when HUD is visible
+    if (hud.style.display === "none") return;
+
+    switch (e.key) {
+      case "2":
+        setKbFocus(kbIndex <= 0 ? getNavigableItems().length - 1 : kbIndex - 1);
+        break;
+      case "3":
+        setKbFocus(kbIndex + 1);
+        break;
+      case "4": {
+        const items = getNavigableItems();
+        if (kbIndex >= 0 && kbIndex < items.length) {
+          items[kbIndex].click();
+        }
+        break;
+      }
+      case "5": {
+        const back = document.getElementById("lt-back");
+        if (back) {
+          restoreIndex = kbIndex;
+          back.click();
+        }
+        break;
+      }
+    }
+  });
+
   // ── Render main page ──
   renderMainFn();
   console.log("[LTModMenu] ========================================");
