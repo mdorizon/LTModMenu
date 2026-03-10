@@ -1,4 +1,5 @@
-import type { FishStats, Waypoint } from "../types/global";
+import type { FishStats } from "../types/fish";
+import type { Waypoint } from "../types/player";
 
 const STORAGE_PREFIX = "ltmod_";
 

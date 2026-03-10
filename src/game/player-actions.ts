@@ -1,5 +1,5 @@
 import { solveFishingChallenge } from "./challenge-solver";
-import type { PlayerPos } from "../types/global";
+import type { PlayerPos } from "../types/player";
 
 export function wsSend(ev: string, data: unknown): boolean {
   if (window.__gameWS && window.__gameWS.readyState === 1) {

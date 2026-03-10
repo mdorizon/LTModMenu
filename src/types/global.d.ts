@@ -1,62 +1,5 @@
-export interface FishStats {
-  common: number;
-  uncommon: number;
-  rare: number;
-  epic: number;
-  legendary: number;
-  secret: number;
-  event: number;
-  unknown: number;
-  total: number;
-  gold: number;
-  last_fish: string;
-  [key: string]: number | string;
-}
-
-export interface Waypoint {
-  name: string;
-  x: number;
-  y: number;
-  direction: string;
-}
-
-export interface PlayerPos {
-  x: number;
-  y: number;
-  direction: string;
-}
-
-export interface FishBiteData {
-  challenge?: string;
-  [key: string]: unknown;
-}
-
-export interface FishResultData {
-  name?: string;
-  weight?: number;
-  isShiny?: boolean;
-  [key: string]: unknown;
-}
-
-export interface LocalPlayer {
-  currentPos: { x: number; y: number };
-  parent: { x: number; y: number };
-  serverPos?: { x: number; y: number };
-  oldPos?: { x: number; y: number };
-  direction: string;
-  fishingMinigame?: { destroy?: () => void } | null;
-  minigame?: { destroy?: () => void } | null;
-  sit: (pose: string) => void;
-  unsit?: (opts: { withCooldown: boolean; emitUnsit: boolean }) => void;
-  setSitAnimation?: (anim: string) => void;
-}
-
-export interface GameApp {
-  localPlayer: LocalPlayer;
-  currentCamera: {
-    moveCameraToPlayer: (instant: boolean) => void;
-  };
-}
+import type { FishStats, FishBiteData, FishResultData } from "./fish";
+import type { PlayerPos, Waypoint, GameApp } from "./player";
 
 declare global {
   interface Window {
@@ -73,6 +16,7 @@ declare global {
     __autoSolveChallenge: (challenge: string) => boolean;
     __forceEndMinigame: () => boolean;
     __ltSpyRetry?: () => boolean;
+    __ltModMenuLoaded?: boolean;
     webpackChunk_N_E: unknown[];
   }
 }
