@@ -33,7 +33,7 @@ export const CSS = [
   "#lt-hud .lt-action.lt-success:hover { background:#2a4a2a; }",
   "#lt-hud .lt-action.lt-danger { background:#3a1a1a;border-color:#6a2a2a;color:#be6a6a; }",
   "#lt-hud .lt-action.lt-danger:hover { background:#4a2a2a; }",
-  "#lt-hud .lt-action.lt-muted { background:#1e1e3a;border-color:#3a3a6a;color:#6a6a9a;font-size:15px; }",
+  "#lt-hud .lt-action.lt-muted { background:#1e1e3a;border-color:#3a3a6a;color:#6a6a9a; }",
   "#lt-hud .lt-status { font-size:15px;color:#6a6a9a;text-align:center;padding:6px 14px;min-height:18px; }",
   "#lt-hud .lt-input { background:#14142a;border:2px solid #3a3a6a;border-radius:6px;",
   "  color:#c8c0e0;font-size:16px;padding:8px 10px;width:calc(100% - 24px);margin:5px 12px;",
