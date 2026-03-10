@@ -6,15 +6,24 @@ const POI = [
   { name: "Merchant", x: 793, y: 198 },
 ];
 
-export function renderPOI(hud: HTMLElement, renderMainFn: RenderFn, pages: Record<string, RenderFn>): void {
-  const items = POI.map(
-    (p, i) =>
-      mkItem("lt-poi-" + i, p.name, '<span class="lt-sub">' + p.x + ", " + p.y + "</span>"),
+export function renderPOI(
+  hud: HTMLElement,
+  renderMainFn: RenderFn,
+  pages: Record<string, RenderFn>,
+): void {
+  const items = POI.map((p, i) =>
+    mkItem(
+      "lt-poi-" + i,
+      p.name,
+      '<span class="lt-sub">' + p.x + ", " + p.y + "</span>",
+    ),
   ).join("");
 
   hud.innerHTML =
-    mkHeader("Saved Locations", true) +
-    '<div class="lt-body">' + items + "</div>" +
+    mkHeader("POIs", true) +
+    '<div class="lt-body">' +
+    items +
+    "</div>" +
     '<div class="lt-status" id="lt-poi-status"></div>';
   bindNav(renderMainFn, pages);
 
@@ -22,7 +31,9 @@ export function renderPOI(hud: HTMLElement, renderMainFn: RenderFn, pages: Recor
     document.getElementById("lt-poi-" + i)!.onclick = () => {
       const ok = doTP(p.x, p.y, "down");
       const st = document.getElementById("lt-poi-status")!;
-      st.textContent = ok ? "Teleported to " + p.name : "Error: gameApp not captured";
+      st.textContent = ok
+        ? "Teleported to " + p.name
+        : "Error: gameApp not captured";
       st.style.color = ok ? "#5ad85a" : "#f05050";
     };
   });

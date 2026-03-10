@@ -1,9 +1,13 @@
 import { mkHeader, bindNav, type RenderFn } from "../components";
 import { wsSend } from "../../game/player-actions";
 
-export function renderActions(hud: HTMLElement, renderMainFn: RenderFn, pages: Record<string, RenderFn>): void {
+export function renderActions(
+  hud: HTMLElement,
+  renderMainFn: RenderFn,
+  pages: Record<string, RenderFn>,
+): void {
   hud.innerHTML =
-    mkHeader("Player Actions", true) +
+    mkHeader("Actions", true) +
     '<div class="lt-body">' +
     '<button class="lt-action lt-primary" id="lt-sit">Sit Down</button>' +
     '<button class="lt-action lt-primary" id="lt-fish-here">Force Fishing</button>' +
@@ -18,13 +22,16 @@ export function renderActions(hud: HTMLElement, renderMainFn: RenderFn, pages: R
     const app = window.__gameApp;
     if (app && app.localPlayer) {
       const lp = app.localPlayer;
-      console.log('[LTModMenu] Calling sit("portable-' + (lp.direction || "down") + '")');
+      console.log(
+        '[LTModMenu] Calling sit("portable-' + (lp.direction || "down") + '")',
+      );
       lp.sit("portable-" + (lp.direction || "down"));
       document.getElementById("lt-act-status")!.textContent = "Sitting";
       document.getElementById("lt-act-status")!.style.color = "#5ad85a";
     } else {
       console.log("[LTModMenu] SIT failed: no gameApp/localPlayer");
-      document.getElementById("lt-act-status")!.textContent = "Error: gameApp not captured";
+      document.getElementById("lt-act-status")!.textContent =
+        "Error: gameApp not captured";
       document.getElementById("lt-act-status")!.style.color = "#f05050";
     }
   };
@@ -38,7 +45,8 @@ export function renderActions(hud: HTMLElement, renderMainFn: RenderFn, pages: R
       setTimeout(() => {
         if (lp.setSitAnimation) lp.setSitAnimation("fishing");
         wsSend("updateSitAnimation", "fishing");
-        document.getElementById("lt-act-status")!.textContent = "Fishing forced";
+        document.getElementById("lt-act-status")!.textContent =
+          "Fishing forced";
         document.getElementById("lt-act-status")!.style.color = "#5a9af0";
       }, 500);
     }

@@ -2,23 +2,37 @@ import { mkHeader, bindNav, type RenderFn } from "../components";
 import { doTP, getPos } from "../../game/player-actions";
 import { saveData } from "../../storage/storage";
 
-export function renderTP(hud: HTMLElement, renderMainFn: RenderFn, pages: Record<string, RenderFn>): void {
+export function renderTP(
+  hud: HTMLElement,
+  renderMainFn: RenderFn,
+  pages: Record<string, RenderFn>,
+): void {
   const wps = window.__waypoints || [];
   const wpList = wps
     .map(
       (w, i) =>
         '<div class="lt-wp-row">' +
-        '<button class="lt-item" id="lt-wtp-' + i + '">' +
-        "<span>" + w.name + "</span>" +
-        '<span class="lt-sub">' + w.x + ", " + w.y + "</span>" +
+        '<button class="lt-item" id="lt-wtp-' +
+        i +
+        '">' +
+        "<span>" +
+        w.name +
+        "</span>" +
+        '<span class="lt-sub">' +
+        w.x +
+        ", " +
+        w.y +
+        "</span>" +
         "</button>" +
-        '<button class="lt-del" id="lt-wdel-' + i + '">X</button>' +
+        '<button class="lt-del" id="lt-wdel-' +
+        i +
+        '">X</button>' +
         "</div>",
     )
     .join("");
 
   hud.innerHTML =
-    mkHeader("Teleport Options", true) +
+    mkHeader("Waypoints", true) +
     '<div class="lt-body">' +
     (wpList || '<div class="lt-status">No waypoints saved</div>') +
     "</div>" +
@@ -32,7 +46,9 @@ export function renderTP(hud: HTMLElement, renderMainFn: RenderFn, pages: Record
     document.getElementById("lt-wtp-" + i)!.onclick = () => {
       const ok = doTP(w.x, w.y, w.direction || "down");
       const st = document.getElementById("lt-tp-status")!;
-      st.textContent = ok ? "Teleported to " + w.name : "Error: gameApp not captured";
+      st.textContent = ok
+        ? "Teleported to " + w.name
+        : "Error: gameApp not captured";
       st.style.color = ok ? "#5ad85a" : "#f05050";
     };
     document.getElementById("lt-wdel-" + i)!.onclick = () => {
