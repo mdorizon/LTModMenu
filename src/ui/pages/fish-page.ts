@@ -23,7 +23,7 @@ export function renderFish(hud: HTMLElement, renderMainFn: RenderFn, pages: Reco
     '<button class="lt-action ' + (window.__botPaused ? "lt-success" : "lt-danger") + '" id="lt-toggle">' +
     (window.__botPaused ? "START" : "STOP") +
     '</button>' +
-    '<button class="lt-action lt-muted" id="lt-reset">Reset Stats</button>' +
+    '<button class="lt-action lt-danger" id="lt-reset">Reset Stats</button>' +
     "</div>";
   bindNav(renderMainFn, pages);
 
@@ -37,23 +37,42 @@ export function renderFish(hud: HTMLElement, renderMainFn: RenderFn, pages: Reco
   };
 
   document.getElementById("lt-reset")!.onclick = () => {
-    if (!confirm("Reset all fishing stats?")) return;
-    window.__fishStats = {
-      common: 0,
-      uncommon: 0,
-      rare: 0,
-      epic: 0,
-      legendary: 0,
-      secret: 0,
-      event: 0,
-      unknown: 0,
-      total: 0,
-      gold: 0,
-      last_fish: "",
+    const overlay = document.createElement("div");
+    overlay.id = "lt-modal-overlay";
+    overlay.innerHTML =
+      '<div id="lt-modal">' +
+      '<div id="lt-modal-title">Reset Stats</div>' +
+      '<div id="lt-modal-msg">Reset all fishing stats? This action cannot be undone.</div>' +
+      '<div id="lt-modal-actions">' +
+      '<button id="lt-modal-cancel">Cancel</button>' +
+      '<button id="lt-modal-confirm">Reset</button>' +
+      "</div></div>";
+    document.body.appendChild(overlay);
+
+    const close = () => document.body.removeChild(overlay);
+
+    document.getElementById("lt-modal-cancel")!.onclick = close;
+    overlay.onclick = (e) => { if (e.target === overlay) close(); };
+
+    document.getElementById("lt-modal-confirm")!.onclick = () => {
+      close();
+      window.__fishStats = {
+        common: 0,
+        uncommon: 0,
+        rare: 0,
+        epic: 0,
+        legendary: 0,
+        secret: 0,
+        event: 0,
+        unknown: 0,
+        total: 0,
+        gold: 0,
+        last_fish: "",
+      };
+      saveData("fishStats", window.__fishStats);
+      console.log("[LTModMenu] Stats reset");
+      renderFish(hud, renderMainFn, pages);
     };
-    saveData("fishStats", window.__fishStats);
-    console.log("[LTModMenu] Stats reset");
-    renderFish(hud, renderMainFn, pages);
   };
 
   if (window.__fishStats) updateHUD();
