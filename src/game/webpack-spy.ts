@@ -38,6 +38,7 @@ console.log(
           {
             "lt-spy-mod": function (_module: any, _exports: any, require: any) {
               console.log("[LTModMenu] Spy module executing, require available:", typeof require);
+              window.__wpRequire = require;
               try {
                 console.log("[LTModMenu] Trying require(20493)...");
                 const appModule = require(20493);

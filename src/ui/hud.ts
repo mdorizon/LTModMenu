@@ -6,6 +6,8 @@ import { renderTP } from "./pages/tp-page";
 import { renderActions } from "./pages/actions-page";
 import { renderFish } from "./pages/fish-page";
 import { startAutoSave } from "../storage/storage";
+import { initSceneCache } from "../game/player-actions";
+import { initThemeSync } from "./theme";
 
 export function initHUD(): void {
   console.log("[LTModMenu] initHUD() called");
@@ -56,9 +58,11 @@ export function initHUD(): void {
         (e.target as HTMLElement).parentElement!.id === "lt-header")
     ) {
       dragging = true;
-      dx = e.clientX - hud.offsetLeft;
-      dy = e.clientY - hud.offsetTop;
+      const rect = hud.getBoundingClientRect();
+      hud.style.top = rect.top + "px";
       hud.style.transform = "none";
+      dx = e.clientX - rect.left;
+      dy = e.clientY - rect.top;
     }
   });
 
@@ -92,13 +96,18 @@ export function initHUD(): void {
     retryCount++;
     if (window.__gameApp) {
       console.log("[LTModMenu] gameApp ready! (after " + retryCount + " checks)");
+      // Delay scene cache init to let the game finish loading scenes & interactables
+      setTimeout(() => initSceneCache(), 5000);
       clearInterval(retryInterval);
       return;
     }
     if (window.__ltSpyRetry) {
       const ok = window.__ltSpyRetry();
       console.log("[LTModMenu] Spy retry #" + retryCount + ":", ok ? "SUCCESS" : "waiting...");
-      if (ok) clearInterval(retryInterval);
+      if (ok) {
+        setTimeout(() => initSceneCache(), 5000);
+        clearInterval(retryInterval);
+      }
     } else {
       if (retryCount % 5 === 0) {
         console.log(
@@ -107,6 +116,84 @@ export function initHUD(): void {
       }
     }
   }, 1000);
+
+  // ── Keyboard shortcuts ──
+  let kbIndex = -1;
+
+  function getNavigableItems(): HTMLElement[] {
+    return Array.from(hud.querySelectorAll<HTMLElement>(".lt-item, .lt-action"));
+  }
+
+  function clearKbFocus(): void {
+    hud.querySelectorAll(".lt-kb-focus").forEach((el) => el.classList.remove("lt-kb-focus"));
+  }
+
+  function setKbFocus(index: number): void {
+    const items = getNavigableItems();
+    if (items.length === 0) return;
+    clearKbFocus();
+    kbIndex = ((index % items.length) + items.length) % items.length;
+    items[kbIndex].classList.add("lt-kb-focus");
+    items[kbIndex].scrollIntoView({ block: "nearest" });
+  }
+
+  // Reset keyboard focus when page content changes
+  let restoreIndex = -1;
+  const observer2 = new MutationObserver(() => {
+    if (restoreIndex >= 0) {
+      const idx = restoreIndex;
+      restoreIndex = -1;
+      setKbFocus(idx);
+    } else {
+      kbIndex = -1;
+    }
+  });
+  observer2.observe(hud, { childList: true, subtree: true });
+
+  document.addEventListener("keydown", (e) => {
+    const tag = (e.target as HTMLElement).tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement).isContentEditable) return;
+
+    if (e.key === "1") {
+      const isHidden = hud.style.display === "none";
+      hud.style.display = isHidden ? "" : "none";
+      if (!isHidden) {
+        kbIndex = -1;
+        clearKbFocus();
+      }
+      return;
+    }
+
+    // Other shortcuts only work when HUD is visible
+    if (hud.style.display === "none") return;
+
+    switch (e.key) {
+      case "2":
+        setKbFocus(kbIndex <= 0 ? getNavigableItems().length - 1 : kbIndex - 1);
+        break;
+      case "3":
+        setKbFocus(kbIndex + 1);
+        break;
+      case "4": {
+        const items = getNavigableItems();
+        if (kbIndex >= 0 && kbIndex < items.length) {
+          items[kbIndex].click();
+        }
+        break;
+      }
+      case "5": {
+        const back = document.getElementById("lt-back");
+        if (back) {
+          restoreIndex = kbIndex;
+          back.click();
+        }
+        break;
+      }
+    }
+  });
+
+  // ── Theme sync ──
+  initThemeSync();
 
   // ── Render main page ──
   renderMainFn();

@@ -1,4 +1,5 @@
-import type { FishStats, Waypoint } from "../types/global";
+import type { FishStats } from "../types/fish";
+import type { Waypoint } from "../types/player";
 
 const STORAGE_PREFIX = "ltmod_";
 
@@ -44,6 +45,7 @@ export function initGlobalState(): void {
   window.__playerPos = null;
   window.__gameApp = null;
   window.__botPaused = true;
+  window.__sceneCache = new Map();
 
   window.__waypoints = loadData<Waypoint[]>("waypoints", []);
   window.__fishStats = loadData<FishStats>("fishStats", {
