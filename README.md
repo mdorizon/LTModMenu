@@ -111,6 +111,17 @@ bun install
 | `bun run watch` | Recompile automatiquement a chaque modification |
 | `bun run clean` | Supprime le dossier `dist/`                     |
 
+### Release
+
+Le projet utilise GitHub Actions pour build et publier automatiquement. Pour creer une nouvelle release :
+
+```bash
+git tag v2.3.0
+git push origin v2.3.0
+```
+
+Le workflow build le projet et ajoute `ltmodmenu.user.js` dans les assets de la release GitHub.
+
 ### Structure du projet
 
 ```
