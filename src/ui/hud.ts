@@ -6,6 +6,7 @@ import { renderTP } from "./pages/tp-page";
 import { renderActions } from "./pages/actions-page";
 import { renderFish } from "./pages/fish-page";
 import { startAutoSave } from "../storage/storage";
+import { initSceneCache } from "../game/player-actions";
 
 export function initHUD(): void {
   console.log("[LTModMenu] initHUD() called");
@@ -92,13 +93,18 @@ export function initHUD(): void {
     retryCount++;
     if (window.__gameApp) {
       console.log("[LTModMenu] gameApp ready! (after " + retryCount + " checks)");
+      // Delay scene cache init to let the game finish loading scenes & interactables
+      setTimeout(() => initSceneCache(), 5000);
       clearInterval(retryInterval);
       return;
     }
     if (window.__ltSpyRetry) {
       const ok = window.__ltSpyRetry();
       console.log("[LTModMenu] Spy retry #" + retryCount + ":", ok ? "SUCCESS" : "waiting...");
-      if (ok) clearInterval(retryInterval);
+      if (ok) {
+        setTimeout(() => initSceneCache(), 5000);
+        clearInterval(retryInterval);
+      }
     } else {
       if (retryCount % 5 === 0) {
         console.log(
