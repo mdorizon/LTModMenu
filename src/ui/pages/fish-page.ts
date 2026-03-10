@@ -7,9 +7,9 @@ export function renderFish(hud: HTMLElement, renderMainFn: RenderFn, pages: Reco
     mkHeader("Auto Fishing", true) +
     '<div class="lt-body" style="padding:4px 0;">' +
     '<div class="lt-stat-row" style="font-size:20px;font-weight:700;padding:8px 14px;color:#e0d8f0;">' +
-    '<span>Total</span><span id="lt-total">0</span></div>' +
+    '<span>Total Caught</span><span id="lt-total">0</span></div>' +
     '<div class="lt-stat-row" style="color:#f0c040;font-weight:600;font-size:18px;">' +
-    '<span>Gold</span><span id="lt-gold">0</span></div>' +
+    '<span>Gold Earned</span><span id="lt-gold">0</span></div>' +
     '<div class="lt-sep"></div>' +
     '<div class="lt-stat-row" style="color:#8a8a9a;"><span>Common</span><span id="lt-common">0</span></div>' +
     '<div class="lt-stat-row" style="color:#5ad85a;"><span>Uncommon</span><span id="lt-uncommon">0</span></div>' +
