@@ -30,7 +30,10 @@ console.log(
       hooked = true;
       console.log("[LTModMenu] First real webpack push detected, injecting spy module...");
       try {
-        _origPush.call(chunks, [
+        // Use the current chunks.push (which is now the game's webpack
+        // jsonp callback) so the spy chunk actually gets processed by
+        // the game's webpack runtime, not just appended to the array.
+        chunks.push([
           ["lt-spy"],
           {
             "lt-spy-mod": function (_module: any, _exports: any, require: any) {
@@ -82,30 +85,43 @@ console.log(
                   e.message,
                   "- setting up retry",
                 );
+                let retrySetterInstalled = false;
                 window.__ltSpyRetry = function () {
                   try {
                     const appModule = require(20493);
                     if (appModule && appModule.App) {
                       const AppClass = appModule.App;
-                      let _real = AppClass._instance;
-                      Object.defineProperty(AppClass, "_instance", {
-                        get() {
-                          return _real;
-                        },
-                        set(v: any) {
-                          _real = v;
-                          if (v && v.localPlayer !== undefined) {
-                            window.__gameApp = v;
-                            console.log("[LTModMenu] gameApp CAPTURED via retry!");
-                          }
-                        },
-                        configurable: true,
-                      });
-                      if (_real) {
-                        window.__gameApp = _real;
-                        console.log("[LTModMenu] gameApp captured via retry (immediate)");
+
+                      // Direct polling: check _instance right now
+                      const inst = AppClass._instance;
+                      if (inst && inst.localPlayer !== undefined) {
+                        window.__gameApp = inst;
+                        console.log("[LTModMenu] gameApp captured via retry (polling)");
+                        return true;
                       }
-                      return true;
+
+                      // Install setter only once for future assignments
+                      if (!retrySetterInstalled) {
+                        retrySetterInstalled = true;
+                        let _real = inst;
+                        Object.defineProperty(AppClass, "_instance", {
+                          get() {
+                            return _real;
+                          },
+                          set(v: any) {
+                            _real = v;
+                            if (v && v.localPlayer !== undefined) {
+                              window.__gameApp = v;
+                              console.log("[LTModMenu] gameApp CAPTURED via setter!");
+                            }
+                          },
+                          configurable: true,
+                        });
+                        console.log("[LTModMenu] Retry setter installed, polling continues...");
+                      }
+
+                      // Not captured yet, keep retrying
+                      return false;
                     }
                   } catch (e2: any) {
                     console.log("[LTModMenu] Retry failed:", e2.message);
