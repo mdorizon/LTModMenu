@@ -1,0 +1,12 @@
+// ==UserScript==
+// @name         LTModMenu - Lofi Town Mod Menu
+// @namespace    ltmodmenu
+// @version      2.2
+// @author       mdorizon
+// @description  Mod menu pour Lofi Town
+// @match        https://app.lofi.town/*
+// @match        https://lofi.town/*
+// @grant        none
+// @inject-into  page
+// @run-at       document-start
+// ==/UserScript==
