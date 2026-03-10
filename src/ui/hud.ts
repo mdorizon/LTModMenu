@@ -7,6 +7,7 @@ import { renderActions } from "./pages/actions-page";
 import { renderFish } from "./pages/fish-page";
 import { startAutoSave } from "../storage/storage";
 import { initSceneCache } from "../game/player-actions";
+import { initThemeSync } from "./theme";
 
 export function initHUD(): void {
   console.log("[LTModMenu] initHUD() called");
@@ -190,6 +191,9 @@ export function initHUD(): void {
       }
     }
   });
+
+  // ── Theme sync ──
+  initThemeSync();
 
   // ── Render main page ──
   renderMainFn();
