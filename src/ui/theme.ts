@@ -1,4 +1,5 @@
 import { SITE_VARS, DEFAULT_COLORS, darken } from "../data/theme-database";
+import { log } from "../utils/logger";
 
 let lastApplied = "";
 
@@ -19,7 +20,6 @@ function applyThemeFromSite(): void {
   const primary = getSiteVar(SITE_VARS.primary);
   if (!primary) return;
 
-  // Avoid reapplying identical theme
   const signature = primary + getSiteVar(SITE_VARS.text);
   if (signature === lastApplied) return;
   lastApplied = signature;
@@ -43,7 +43,7 @@ function applyThemeFromSite(): void {
   hud.style.setProperty("--lt-accent", icon || accentHover || primary);
   hud.style.setProperty("--lt-shadow", "rgba(0,0,0,0.5)");
 
-  console.log("[LTModMenu] Theme synced from site (primary: " + primary + ")");
+  log("THEME", "Theme synced from site (primary: " + primary + ")");
 }
 
 function applyDefault(): void {
@@ -62,18 +62,16 @@ function applyDefault(): void {
   hud.style.setProperty("--lt-accent", c.accent);
   hud.style.setProperty("--lt-shadow", c.shadow);
 
-  console.log("[LTModMenu] Theme applied: Default (fallback)");
+  log("THEME", "Theme applied: Default (fallback)");
 }
 
 export function initThemeSync(): void {
-  // Initial apply
   if (siteThemeAvailable()) {
     applyThemeFromSite();
   } else {
     applyDefault();
   }
 
-  // Observe <html> style attribute for theme changes
   const observer = new MutationObserver(() => {
     if (siteThemeAvailable()) {
       applyThemeFromSite();

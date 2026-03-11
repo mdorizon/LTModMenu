@@ -1,6 +1,7 @@
 import { mkHeader, bindNav, type RenderFn } from "../components";
 import { fishingLoop, isFishingLoopRunning, updateHUD } from "../../bot/fishing-loop";
 import { saveData } from "../../storage/storage";
+import { log } from "../../utils/logger";
 
 export function renderFish(hud: HTMLElement, renderMainFn: RenderFn, pages: Record<string, RenderFn>): void {
   hud.innerHTML =
@@ -29,7 +30,7 @@ export function renderFish(hud: HTMLElement, renderMainFn: RenderFn, pages: Reco
 
   document.getElementById("lt-toggle")!.onclick = () => {
     window.__botPaused = !window.__botPaused;
-    console.log("[LTModMenu] Toggle pause:", window.__botPaused ? "PAUSED" : "RUNNING");
+    log("UI", "Toggle pause: " + (window.__botPaused ? "PAUSED" : "RUNNING"));
     if (!window.__botPaused && !isFishingLoopRunning()) {
       fishingLoop();
     }
@@ -70,7 +71,7 @@ export function renderFish(hud: HTMLElement, renderMainFn: RenderFn, pages: Reco
         last_fish: "",
       };
       saveData("fishStats", window.__fishStats);
-      console.log("[LTModMenu] Stats reset");
+      log("UI", "Stats reset");
       renderFish(hud, renderMainFn, pages);
     };
   };

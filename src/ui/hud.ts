@@ -8,19 +8,20 @@ import { renderFish } from "./pages/fish-page";
 import { startAutoSave } from "../storage/storage";
 import { initSceneCache } from "../game/player-actions";
 import { initThemeSync } from "./theme";
+import { log } from "../utils/logger";
 
 export function initHUD(): void {
-  console.log("[LTModMenu] initHUD() called");
-  console.log("[LTModMenu] document.body exists:", !!document.body);
-  console.log("[LTModMenu] Existing HUD:", !!document.getElementById("lt-hud"));
+  log("HUD", "initHUD() called");
+  log("HUD", "document.body exists: " + !!document.body);
+  log("HUD", "Existing HUD: " + !!document.getElementById("lt-hud"));
 
   if (document.getElementById("lt-hud")) {
-    console.log("[LTModMenu] HUD already exists, skipping");
+    log("HUD", "HUD already exists, skipping");
     return;
   }
 
   if (!document.body) {
-    console.log("[LTModMenu] No document.body yet, retrying in 500ms...");
+    log("HUD", "No document.body yet, retrying in 500ms...");
     setTimeout(initHUD, 500);
     return;
   }
@@ -34,7 +35,7 @@ export function initHUD(): void {
   const hud = document.createElement("div");
   hud.id = "lt-hud";
   document.body.appendChild(hud);
-  console.log("[LTModMenu] HUD div created and appended to body");
+  log("HUD", "HUD div created and appended to body");
 
   // ── Page rendering ──
   const renderMainFn: RenderFn = () => renderMain(hud, pages);
@@ -95,7 +96,7 @@ export function initHUD(): void {
   const retryInterval = setInterval(() => {
     retryCount++;
     if (window.__gameApp) {
-      console.log("[LTModMenu] gameApp ready! (after " + retryCount + " checks)");
+      log("HUD", "gameApp ready! (after " + retryCount + " checks)");
       // Delay scene cache init to let the game finish loading scenes & interactables
       setTimeout(() => initSceneCache(), 5000);
       clearInterval(retryInterval);
@@ -103,16 +104,14 @@ export function initHUD(): void {
     }
     if (window.__ltSpyRetry) {
       const ok = window.__ltSpyRetry();
-      console.log("[LTModMenu] Spy retry #" + retryCount + ":", ok ? "SUCCESS" : "waiting...");
+      log("HUD", "Spy retry #" + retryCount + ": " + (ok ? "SUCCESS" : "waiting..."));
       if (ok) {
         setTimeout(() => initSceneCache(), 5000);
         clearInterval(retryInterval);
       }
     } else {
       if (retryCount % 5 === 0) {
-        console.log(
-          "[LTModMenu] Waiting for spy retry function... (check #" + retryCount + ")",
-        );
+        log("HUD", "Waiting for spy retry function... (check #" + retryCount + ")");
       }
     }
   }, 1000);
@@ -197,35 +196,30 @@ export function initHUD(): void {
 
   // ── Render main page ──
   renderMainFn();
-  console.log("[LTModMenu] ========================================");
-  console.log("[LTModMenu] HUD INJECTED AND RENDERED SUCCESSFULLY!");
-  console.log("[LTModMenu] ========================================");
+  log("HUD", "========================================");
+  log("HUD", "HUD INJECTED AND RENDERED SUCCESSFULLY!");
+  log("HUD", "========================================");
 
   // ── Start auto-save ──
   startAutoSave();
 }
 
 export function tryInit(): void {
-  console.log(
-    "[LTModMenu] tryInit(), body:",
-    !!document.body,
-    "readyState:",
-    document.readyState,
-  );
+  log("HUD", "tryInit(), body: " + !!document.body + " readyState: " + document.readyState);
   if (document.body) {
-    console.log("[LTModMenu] Body found, waiting 3s for game to load...");
+    log("HUD", "Body found, waiting 3s for game to load...");
     setTimeout(() => {
-      console.log("[LTModMenu] 3s elapsed, initializing HUD...");
+      log("HUD", "3s elapsed, initializing HUD...");
       initHUD();
     }, 3000);
   } else {
-    console.log("[LTModMenu] No body yet, observing DOM...");
+    log("HUD", "No body yet, observing DOM...");
     const observer = new MutationObserver((_mutations, obs) => {
       if (document.body) {
-        console.log("[LTModMenu] Body appeared via MutationObserver");
+        log("HUD", "Body appeared via MutationObserver");
         obs.disconnect();
         setTimeout(() => {
-          console.log("[LTModMenu] Delayed init after body appeared...");
+          log("HUD", "Delayed init after body appeared...");
           initHUD();
         }, 3000);
       }

@@ -1,22 +1,24 @@
 // Side-effect module: replaces window.WebSocket to intercept all connections
 
-console.log("[LTModMenu] Setting up WebSocket hook...");
+import { log } from "../utils/logger";
+
+log("WS", "Setting up WebSocket hook...");
 const OrigWS = window.WebSocket;
-console.log("[LTModMenu] Original WebSocket:", typeof OrigWS);
+log("WS", "Original WebSocket: " + typeof OrigWS);
 
 (window as any).WebSocket = function (...args: any[]) {
   const url = args[0] || "";
-  console.log("[LTModMenu] new WebSocket() called, url:", url);
+  log("WS", "new WebSocket() called, url: " + url);
 
   const ws = new (Function.prototype.bind.apply(OrigWS, [
     null,
     ...args,
   ]) as any)() as WebSocket;
-  console.log("[LTModMenu] WebSocket created, readyState:", ws.readyState);
+  log("WS", "WebSocket created, readyState: " + ws.readyState);
 
   if (typeof url === "string") {
     window.__gameWS = ws;
-    console.log("[LTModMenu] Stored as __gameWS");
+    log("WS", "Stored as __gameWS");
 
     // Hook send
     const _origSend = ws.send.bind(ws);
@@ -25,7 +27,7 @@ console.log("[LTModMenu] Original WebSocket:", typeof OrigWS);
     ) {
       if (typeof data === "string") {
         if (!data.includes("clientUpdatePosition")) {
-          console.log("[LTModMenu] WS SEND:", data.substring(0, 120));
+          log("WS", "SEND: " + data.substring(0, 120));
         }
 
         // Track position
@@ -47,25 +49,25 @@ console.log("[LTModMenu] Original WebSocket:", typeof OrigWS);
           data.includes("getFishingResult") &&
           data.includes('"fail"')
         ) {
-          console.log("[LTModMenu] BLOCKED fail message!");
+          log("WS", "BLOCKED fail message!");
           return;
         }
       }
       return _origSend(data);
     };
-    console.log("[LTModMenu] WS send() hooked");
+    log("WS", "send() hooked");
   }
 
   ws.addEventListener("open", () => {
-    console.log("[LTModMenu] WS OPEN, url:", url);
+    log("WS", "OPEN, url: " + url);
   });
 
   ws.addEventListener("close", (e) => {
-    console.log("[LTModMenu] WS CLOSE, code:", e.code, "reason:", e.reason);
+    log("WS", "CLOSE, code: " + e.code + " reason: " + e.reason);
   });
 
   ws.addEventListener("error", (e) => {
-    console.log("[LTModMenu] WS ERROR:", e);
+    log("WS", "ERROR", e);
   });
 
   ws.addEventListener("message", (e) => {
@@ -145,30 +147,24 @@ console.log("[LTModMenu] Original WebSocket:", typeof OrigWS);
           }
 
           // Log the event
-          console.log("[LTModMenu] WS RECV:", data.substring(0, 200));
+          log("WS", "RECV: " + data.substring(0, 200));
 
           // Handle specific events
           if (eventName === "fishCaught" && eventData) {
-            console.log("[LTModMenu] >>> FISH CAUGHT EVENT <<<");
+            log("WS", ">>> FISH CAUGHT EVENT <<<");
             window.__fishBite = eventData;
-            console.log(
-              "[LTModMenu] Fish bite data:",
-              JSON.stringify(eventData).substring(0, 200),
-            );
+            log("WS", "Fish bite data: " + JSON.stringify(eventData).substring(0, 200));
           }
 
           if (eventName === "fishing-result" && eventData) {
-            console.log("[LTModMenu] >>> FISHING RESULT EVENT <<<");
+            log("WS", ">>> FISHING RESULT EVENT <<<");
             window.__lastFish = eventData;
-            console.log(
-              "[LTModMenu] Fish result:",
-              JSON.stringify(eventData).substring(0, 200),
-            );
+            log("WS", "Fish result: " + JSON.stringify(eventData).substring(0, 200));
           }
         } catch (_e) {
           // Not parseable as event, log if short enough
           if (data.length < 500) {
-            console.log("[LTModMenu] WS RECV:", data.substring(0, 200));
+            log("WS", "RECV: " + data.substring(0, 200));
           }
         }
         return;
@@ -176,13 +172,10 @@ console.log("[LTModMenu] Original WebSocket:", typeof OrigWS);
 
       // Non-event messages (handshake, ping/pong, etc.) - log if short
       if (data.length < 500) {
-        console.log("[LTModMenu] WS RECV:", data.substring(0, 200));
+        log("WS", "RECV: " + data.substring(0, 200));
       }
     } catch (err) {
-      console.log(
-        "[LTModMenu] WS message parse error:",
-        (err as Error).message,
-      );
+      log("WS", "message parse error: " + (err as Error).message);
     }
   });
 
@@ -194,6 +187,6 @@ Object.defineProperty(window.WebSocket, "CONNECTING", { value: 0 });
 Object.defineProperty(window.WebSocket, "OPEN", { value: 1 });
 Object.defineProperty(window.WebSocket, "CLOSING", { value: 2 });
 Object.defineProperty(window.WebSocket, "CLOSED", { value: 3 });
-console.log("[LTModMenu] WebSocket constructor hooked");
+log("WS", "WebSocket constructor hooked");
 
 export {};

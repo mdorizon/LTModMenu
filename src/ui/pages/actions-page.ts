@@ -4,6 +4,7 @@ import {
   bindForceFishing,
   cleanupFishingRod,
 } from "../actions/force-fishing";
+import { log } from "../../utils/logger";
 
 export function renderActions(
   hud: HTMLElement,
@@ -25,7 +26,7 @@ export function renderActions(
   toggleBtn.onclick = () => {
     const app = window.__gameApp;
     if (!app || !app.localPlayer) {
-      console.log("[LTModMenu] SIT TOGGLE failed: no gameApp/localPlayer");
+      log("UI", "SIT TOGGLE failed: no gameApp/localPlayer");
       document.getElementById("lt-act-status")!.textContent =
         "Error: gameApp not captured";
       document.getElementById("lt-act-status")!.style.color = "#f05050";
@@ -33,7 +34,7 @@ export function renderActions(
     }
     const lp = app.localPlayer;
     if (!isSitting) {
-      console.log("[LTModMenu] SIT button clicked");
+      log("UI", "SIT button clicked");
       lp.sit("portable-" + (lp.direction || "down"));
       isSitting = true;
       toggleBtn.textContent = "Stand Up";
@@ -41,7 +42,7 @@ export function renderActions(
       document.getElementById("lt-act-status")!.textContent = "Sitting";
       document.getElementById("lt-act-status")!.style.color = "#5ad85a";
     } else {
-      console.log("[LTModMenu] UNSIT button clicked");
+      log("UI", "UNSIT button clicked");
       cleanupFishingRod();
       lp.unsit?.({ withCooldown: false, emitUnsit: true });
       isSitting = false;

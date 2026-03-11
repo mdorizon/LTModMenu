@@ -1,4 +1,5 @@
 import { wsSend } from "../../game/player-actions";
+import { log } from "../../utils/logger";
 
 let fishingCleanupInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -29,7 +30,7 @@ export function renderForceFishing(): string {
 
 export function bindForceFishing(): void {
   document.getElementById("lt-fish-here")!.onclick = () => {
-    console.log("[LTModMenu] FISH HERE button clicked");
+    log("ACTION", "FISH HERE button clicked");
     const app = window.__gameApp;
     if (app && app.localPlayer) {
       const lp = app.localPlayer;
@@ -39,29 +40,24 @@ export function bindForceFishing(): void {
         if (lp.setSitAnimation) lp.setSitAnimation("fishing");
         wsSend("updateSitAnimation", "fishing");
 
-        // Client-side: show fishing animation + rod sprite
         const animDir = dir === "right" || dir === "left" ? "side" : dir;
-        console.log("[LTModMenu] Force fishing: dir=" + dir + " animDir=" + animDir);
+        log("ACTION", "Force fishing: dir=" + dir + " animDir=" + animDir);
 
         try {
-          console.log("[LTModMenu] Calling changeAnimationState('fishing_" + animDir + "')");
           lp.changeAnimationState("fishing_" + animDir);
-          console.log("[LTModMenu] changeAnimationState OK");
+          log("ACTION", "changeAnimationState OK");
         } catch (e) {
-          console.warn("[LTModMenu] changeAnimationState failed:", e);
+          log("ACTION", "changeAnimationState failed: " + (e as Error).message);
         }
 
         if (lp.character) {
           try {
-            console.log("[LTModMenu] character: removeFishingRod=" + !!lp.character.removeFishingRod + " takeOutFishingRod=" + !!lp.character.takeOutFishingRod);
             if (lp.character.removeFishingRod) lp.character.removeFishingRod();
             if (lp.character.takeOutFishingRod) lp.character.takeOutFishingRod(dir);
-            console.log("[LTModMenu] Fishing rod sprite OK");
+            log("ACTION", "Fishing rod sprite OK");
           } catch (e) {
-            console.warn("[LTModMenu] Failed to show fishing rod sprite:", e);
+            log("ACTION", "Failed to show fishing rod sprite: " + (e as Error).message);
           }
-        } else {
-          console.warn("[LTModMenu] lp.character is null/undefined!");
         }
         watchForUnsit();
 
