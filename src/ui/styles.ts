@@ -58,4 +58,6 @@ export const CSS = [
   "#lt-modal-actions button:hover { filter:brightness(1.2); }",
   "#lt-hud .lt-item.lt-kb-focus, #lt-hud .lt-action.lt-kb-focus { background:var(--lt-border, #3a3a6a);outline:2px solid var(--lt-accent, #6a6abe);outline-offset:-2px; }",
   "#lt-hud .lt-dev-label { font-size:12px;color:#6a6a9a;text-align:center;padding:4px 14px 0;letter-spacing:2px;opacity:0.6; }",
+  "#lt-hud .lt-dev-row { display:flex;gap:6px;padding:0 12px;margin:5px 0; }",
+  "#lt-hud .lt-dev-row .lt-action { flex:1;margin:0; }",
 ].join(" ");

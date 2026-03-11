@@ -4,6 +4,9 @@
 //  must be installed before the game loads.
 // ══════════════════════════════════════════════
 
+// Silence console output from the game's scripts (auto-detected via stack trace)
+import "@core/console-filter";
+
 import { log } from "@core/logger";
 
 log("INIT", ">>> Script executing in PAGE context <<<");
