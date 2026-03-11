@@ -24,6 +24,7 @@ declare global {
     __sceneCache: Map<string, GameScene>;
     __wpRequire?: (id: number) => any;
     __ltSpyRetry?: () => boolean;
+    __localPlayerId: string | null;
     __ltModMenuLoaded?: boolean;
     webpackChunk_N_E: unknown[];
   }

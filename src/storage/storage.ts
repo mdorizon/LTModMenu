@@ -44,6 +44,7 @@ export function initGlobalState(): void {
   window.__blockFishingFail = false;
   window.__playerPos = null;
   window.__gameApp = null;
+  window.__localPlayerId = null;
   window.__botPaused = true;
   window.__sceneCache = new Map();
 

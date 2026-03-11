@@ -1,5 +1,34 @@
 // Side-effect module: hooks webpackChunk_N_E.push to capture gameApp
 
+import { log } from "../utils/logger";
+
+function inspectLocalPlayerForId(gameApp: any): void {
+  try {
+    const lp = gameApp.localPlayer;
+    if (!lp) return;
+
+    // Look for ID-like properties on localPlayer
+    const idKeys = ["id", "playerId", "userId", "uid", "sid", "sessionId", "name", "username"];
+    for (const key of idKeys) {
+      if (lp[key] !== undefined) {
+        console.log(`[LTModMenu] localPlayer.${key} =`, lp[key]);
+        log("PLAYER", `Found localPlayer.${key}`, { [key]: lp[key] });
+        if (!window.__localPlayerId && (key === "id" || key === "playerId" || key === "userId" || key === "uid")) {
+          window.__localPlayerId = String(lp[key]);
+          log("PLAYER", "Local player ID set from localPlayer", { id: lp[key] });
+        }
+      }
+    }
+
+    // Dump all enumerable keys for discovery
+    const allKeys = Object.keys(lp);
+    console.log("[LTModMenu] localPlayer keys:", allKeys.join(", "));
+    log("PLAYER", "localPlayer properties discovered", { keys: allKeys });
+  } catch (e: any) {
+    console.log("[LTModMenu] inspectLocalPlayer error:", e.message);
+  }
+}
+
 console.log("[LTModMenu] Setting up webpack spy...");
 console.log(
   "[LTModMenu] Current webpackChunk_N_E:",
@@ -67,6 +96,7 @@ console.log(
                       if (v && v.localPlayer !== undefined) {
                         window.__gameApp = v;
                         console.log("[LTModMenu] gameApp CAPTURED!");
+                        inspectLocalPlayerForId(v);
                       }
                     },
                     configurable: true,
@@ -74,6 +104,7 @@ console.log(
                   if (_real && _real.localPlayer !== undefined) {
                     window.__gameApp = _real;
                     console.log("[LTModMenu] gameApp captured immediately (already instantiated)");
+                    inspectLocalPlayerForId(_real);
                   } else {
                     console.log("[LTModMenu] gameApp not yet instantiated, waiting for setter...");
                   }
@@ -98,6 +129,7 @@ console.log(
                       if (inst && inst.localPlayer !== undefined) {
                         window.__gameApp = inst;
                         console.log("[LTModMenu] gameApp captured via retry (polling)");
+                        inspectLocalPlayerForId(inst);
                         return true;
                       }
 
@@ -114,6 +146,7 @@ console.log(
                             if (v && v.localPlayer !== undefined) {
                               window.__gameApp = v;
                               console.log("[LTModMenu] gameApp CAPTURED via setter!");
+                              inspectLocalPlayerForId(v);
                             }
                           },
                           configurable: true,

@@ -8,7 +8,10 @@ console.log("[LTModMenu] Original WebSocket:", typeof OrigWS);
   const url = args[0] || "";
   console.log("[LTModMenu] new WebSocket() called, url:", url);
 
-  const ws = new (Function.prototype.bind.apply(OrigWS, [null, ...args]) as any)() as WebSocket;
+  const ws = new (Function.prototype.bind.apply(OrigWS, [
+    null,
+    ...args,
+  ]) as any)() as WebSocket;
   console.log("[LTModMenu] WebSocket created, readyState:", ws.readyState);
 
   if (typeof url === "string") {
@@ -17,7 +20,9 @@ console.log("[LTModMenu] Original WebSocket:", typeof OrigWS);
 
     // Hook send
     const _origSend = ws.send.bind(ws);
-    ws.send = function (data: string | ArrayBufferLike | Blob | ArrayBufferView) {
+    ws.send = function (
+      data: string | ArrayBufferLike | Blob | ArrayBufferView,
+    ) {
       if (typeof data === "string") {
         if (!data.includes("clientUpdatePosition")) {
           console.log("[LTModMenu] WS SEND:", data.substring(0, 120));
@@ -67,42 +72,117 @@ console.log("[LTModMenu] Original WebSocket:", typeof OrigWS);
     try {
       const data = typeof e.data === "string" ? e.data : "";
 
-      if (
-        data.length > 0 &&
-        !data.includes("playerMoved") &&
-        !data.includes("updatePosition") &&
-        data.length < 500
-      ) {
+      // Skip empty messages
+      if (data.length === 0) return;
+
+      // Always skip high-frequency position events from other players
+      if (data.includes("playerMoved") || data.includes("updatePosition")) {
+        return;
+      }
+
+      // Parse Socket.IO event messages (format: 42["eventName", data])
+      if (data.startsWith("42")) {
+        try {
+          const jsonStr = data.substring(data.indexOf("["));
+          const parsed = JSON.parse(jsonStr);
+          const eventName = parsed[0];
+          const eventData = parsed[1];
+
+          // Events that are always ours (responses to our own actions)
+          const localEvents = [
+            "fishCaught",
+            "fishing-result",
+            "connected",
+            "fishingFrenzyUpdate",
+            "focus-stats-updated",
+          ];
+
+          // Events that are always about other players or broadcast noise
+          const otherPlayerEvents = [
+            "playerMoved",
+            "updatePosition",
+            "playerDisconnected",
+            "playerConnected",
+            "initOtherPlayers",
+            "playerJoinedRoom",
+            "playerLeftRoom",
+            "newFocusSessionData",
+            "updateAvatarTraitsResponse",
+          ];
+
+          if (otherPlayerEvents.includes(eventName)) return;
+
+          // For non-local events, check all parsed args for a foreign player ID
+          if (!localEvents.includes(eventName) && window.__localPlayerId) {
+            const myId = window.__localPlayerId;
+            let foundForeignId = false;
+
+            for (let i = 1; i < parsed.length; i++) {
+              const arg = parsed[i];
+              // ID as direct string argument — Discord-style numeric or UUID
+              if (typeof arg === "string" && arg !== myId) {
+                if (
+                  /^\d{15,}$/.test(arg) ||
+                  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+                    arg,
+                  )
+                ) {
+                  foundForeignId = true;
+                  break;
+                }
+              }
+              // ID inside an object (e.g. 42["event", {id: "playerId", ...}])
+              if (arg && typeof arg === "object") {
+                const objId = arg.id || arg.playerId || arg.userId;
+                if (objId && String(objId) !== myId) {
+                  foundForeignId = true;
+                  break;
+                }
+              }
+            }
+
+            if (foundForeignId) return;
+          }
+
+          // Log the event
+          console.log("[LTModMenu] WS RECV:", data.substring(0, 200));
+
+          // Handle specific events
+          if (eventName === "fishCaught" && eventData) {
+            console.log("[LTModMenu] >>> FISH CAUGHT EVENT <<<");
+            window.__fishBite = eventData;
+            console.log(
+              "[LTModMenu] Fish bite data:",
+              JSON.stringify(eventData).substring(0, 200),
+            );
+          }
+
+          if (eventName === "fishing-result" && eventData) {
+            console.log("[LTModMenu] >>> FISHING RESULT EVENT <<<");
+            window.__lastFish = eventData;
+            console.log(
+              "[LTModMenu] Fish result:",
+              JSON.stringify(eventData).substring(0, 200),
+            );
+          }
+        } catch (_e) {
+          // Not parseable as event, log if short enough
+          if (data.length < 500) {
+            console.log("[LTModMenu] WS RECV:", data.substring(0, 200));
+          }
+        }
+        return;
+      }
+
+      // Non-event messages (handshake, ping/pong, etc.) - log if short
+      if (data.length < 500) {
         console.log("[LTModMenu] WS RECV:", data.substring(0, 200));
       }
-
-      if (data.includes("fishCaught")) {
-        console.log("[LTModMenu] >>> FISH CAUGHT EVENT <<<");
-        const jsonStr = data.substring(data.indexOf("["));
-        const parsed = JSON.parse(jsonStr);
-        if (parsed[0] === "fishCaught" && parsed[1]) {
-          window.__fishBite = parsed[1];
-          console.log(
-            "[LTModMenu] Fish bite data:",
-            JSON.stringify(parsed[1]).substring(0, 200),
-          );
-        }
-      }
-
-      if (data.includes("fishing-result")) {
-        console.log("[LTModMenu] >>> FISHING RESULT EVENT <<<");
-        const jsonStr2 = data.substring(data.indexOf("["));
-        const parsed2 = JSON.parse(jsonStr2);
-        if (parsed2[0] === "fishing-result" && parsed2[1]) {
-          window.__lastFish = parsed2[1];
-          console.log(
-            "[LTModMenu] Fish result:",
-            JSON.stringify(parsed2[1]).substring(0, 200),
-          );
-        }
-      }
     } catch (err) {
-      console.log("[LTModMenu] WS message parse error:", (err as Error).message);
+      console.log(
+        "[LTModMenu] WS message parse error:",
+        (err as Error).message,
+      );
     }
   });
 
