@@ -1,9 +1,21 @@
 const MAX_LOGS = 5000;
 const LOG_SERVER = "http://localhost:8642/logs";
+const WS_ALL_SERVER = "http://localhost:8642/ws-all";
 const FLUSH_INTERVAL = 2000; // flush every 2s
 
 const logs: string[] = [];
 const pending: string[] = [];
+const pendingWsAll: string[] = [];
+
+const WS_ALL_KEY = "ltmod_wsAllLogs";
+let wsAllEnabled = false;
+
+// Restore from localStorage on load
+try {
+  wsAllEnabled = localStorage.getItem(WS_ALL_KEY) === "true";
+} catch (_e) {
+  // ignore
+}
 
 function timestamp(): string {
   return new Date().toISOString();
@@ -24,22 +36,50 @@ export function log(category: string, message: string, data?: unknown): void {
   }
 }
 
+// Log all WS traffic (including filtered events) to separate file
+export function logWsAll(message: string): void {
+  if (!__DEV__ || !wsAllEnabled) return;
+  const entry = `[${timestamp()}] ${message}`;
+  pendingWsAll.push(entry);
+}
+
+export function isWsAllEnabled(): boolean {
+  return wsAllEnabled;
+}
+
+export function setWsAllEnabled(enabled: boolean): void {
+  wsAllEnabled = enabled;
+  try {
+    localStorage.setItem(WS_ALL_KEY, String(enabled));
+  } catch (_e) {
+    // ignore
+  }
+  log("WS", "All WS logging " + (enabled ? "ENABLED" : "DISABLED"));
+}
+
 // Batch-send logs to the local dev server
 function flushLogs(): void {
-  if (pending.length === 0) return;
-  const batch = pending.splice(0);
-  fetch(LOG_SERVER, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(batch),
-  }).catch(() => {
-    // Server not running, silently ignore
-  });
+  if (pending.length > 0) {
+    const batch = pending.splice(0);
+    fetch(LOG_SERVER, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(batch),
+    }).catch(() => {});
+  }
+
+  if (pendingWsAll.length > 0) {
+    const batch = pendingWsAll.splice(0);
+    fetch(WS_ALL_SERVER, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(batch),
+    }).catch(() => {});
+  }
 }
 
 if (__DEV__) {
   setInterval(flushLogs, FLUSH_INTERVAL);
-  // Flush on page unload
   window.addEventListener("beforeunload", flushLogs);
 }
 

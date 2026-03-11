@@ -1,6 +1,6 @@
 // Side-effect module: replaces window.WebSocket to intercept all connections
 
-import { log } from "../utils/logger";
+import { log, logWsAll } from "../utils/logger";
 
 log("WS", "Setting up WebSocket hook...");
 const OrigWS = window.WebSocket;
@@ -79,6 +79,7 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
 
       // Always skip high-frequency position events from other players
       if (data.includes("playerMoved") || data.includes("updatePosition")) {
+        logWsAll("RECV [position]: " + data.substring(0, 200));
         return;
       }
 
@@ -112,7 +113,10 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
             "updateAvatarTraitsResponse",
           ];
 
-          if (otherPlayerEvents.includes(eventName)) return;
+          if (otherPlayerEvents.includes(eventName)) {
+            logWsAll("RECV [other:" + eventName + "]: " + data.substring(0, 200));
+            return;
+          }
 
           // For non-local events, check all parsed args for a foreign player ID
           if (!localEvents.includes(eventName) && window.__localPlayerId) {
@@ -143,7 +147,10 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
               }
             }
 
-            if (foundForeignId) return;
+            if (foundForeignId) {
+              logWsAll("RECV [foreign:" + eventName + "]: " + data.substring(0, 200));
+              return;
+            }
           }
 
           // Log the event

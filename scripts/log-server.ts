@@ -5,6 +5,7 @@ import { join } from "path";
 const PORT = 8642;
 const LOG_DIR = join(import.meta.dir, "..", "logs");
 const LOG_FILE = join(LOG_DIR, "ltmodmenu.log");
+const WS_ALL_FILE = join(LOG_DIR, "ws-all.log");
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB max, then rotate
 
 async function ensureLogDir() {
@@ -13,14 +14,14 @@ async function ensureLogDir() {
   }
 }
 
-async function rotateIfNeeded() {
-  if (!existsSync(LOG_FILE)) return;
-  const stat = Bun.file(LOG_FILE);
+async function rotateIfNeeded(filePath: string) {
+  if (!existsSync(filePath)) return;
+  const stat = Bun.file(filePath);
   if ((await stat.size) > MAX_SIZE) {
-    const rotated = LOG_FILE.replace(".log", `.${Date.now()}.log`);
-    await Bun.write(rotated, Bun.file(LOG_FILE));
-    await Bun.write(LOG_FILE, "");
-    console.log(`[log-server] Rotated logs to ${rotated}`);
+    const rotated = filePath.replace(".log", `.${Date.now()}.log`);
+    await Bun.write(rotated, Bun.file(filePath));
+    await Bun.write(filePath, "");
+    console.log(`[log-server] Rotated ${filePath} to ${rotated}`);
   }
 }
 
@@ -40,13 +41,16 @@ const server = Bun.serve({
       });
     }
 
-    if (req.method === "POST" && new URL(req.url).pathname === "/logs") {
+    const pathname = new URL(req.url).pathname;
+
+    if (req.method === "POST" && (pathname === "/logs" || pathname === "/ws-all")) {
       try {
+        const targetFile = pathname === "/ws-all" ? WS_ALL_FILE : LOG_FILE;
         const body = await req.json();
         const entries: string[] = Array.isArray(body) ? body : [body];
         const text = entries.join("\n") + "\n";
-        await appendFile(LOG_FILE, text);
-        await rotateIfNeeded();
+        await appendFile(targetFile, text);
+        await rotateIfNeeded(targetFile);
         return new Response("ok", {
           headers: { "Access-Control-Allow-Origin": "*" },
         });
@@ -63,4 +67,5 @@ const server = Bun.serve({
 });
 
 console.log(`[log-server] Listening on http://localhost:${PORT}`);
-console.log(`[log-server] Logs written to ${LOG_FILE}`);
+console.log(`[log-server] Main logs: ${LOG_FILE}`);
+console.log(`[log-server] WS all logs: ${WS_ALL_FILE}`);

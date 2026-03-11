@@ -60,4 +60,5 @@ export const CSS = [
   "#lt-modal-confirm { background:#3a1a1a;border-color:#6a2a2a;color:#be6a6a; }",
   "#lt-modal-confirm:hover { background:#4a2a2a;color:#e07070; }",
   "#lt-hud .lt-item.lt-kb-focus, #lt-hud .lt-action.lt-kb-focus { background:var(--lt-border, #3a3a6a);outline:2px solid var(--lt-accent, #6a6abe);outline-offset:-2px; }",
+  "#lt-hud .lt-dev-label { font-size:12px;color:#6a6a9a;text-align:center;padding:4px 14px 0;letter-spacing:2px;opacity:0.6; }",
 ].join(" ");
