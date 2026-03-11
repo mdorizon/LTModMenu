@@ -5,6 +5,8 @@
 Tampermonkey userscript mod menu for [Lofi Town](https://lofi.town/).  
 Includes an automatic fishing bot, teleportation, waypoints, and detailed statistics.
 
+> ⚠️ **Use at your own risk.** This mod menu may violate [Lofi Town's terms of service](https://lofi.town/) and could result in your account being banned.
+
 ---
 
 ## Installation
