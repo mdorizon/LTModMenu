@@ -1,5 +1,5 @@
 import { mkHeader, bindNav, type RenderFn } from "@ui/components";
-import { fishingLoop, isFishingLoopRunning, updateHUD } from "../fishing-loop";
+import { fishingLoop, isFishingLoopRunning, stopFishingLoop, updateHUD } from "../fishing-loop";
 import { renderForceFishing, bindForceFishing } from "../force-fishing";
 import { saveData } from "@core/storage";
 import { log } from "@core/logger";
@@ -35,7 +35,9 @@ export function renderFishing(hud: HTMLElement, renderMainFn: RenderFn, pages: R
   document.getElementById("lt-toggle")!.onclick = () => {
     window.__botPaused = !window.__botPaused;
     log("UI", "Toggle pause: " + (window.__botPaused ? "PAUSED" : "RUNNING"));
-    if (!window.__botPaused && !isFishingLoopRunning()) {
+    if (window.__botPaused) {
+      stopFishingLoop();
+    } else if (!isFishingLoopRunning()) {
       fishingLoop();
     }
     renderFishing(hud, renderMainFn, pages);

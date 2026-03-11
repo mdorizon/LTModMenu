@@ -19,6 +19,7 @@ export interface LocalPlayer {
   oldPos?: { x: number; y: number };
   direction: string;
   currentSeatId: string;
+  sitAnimation?: string;
   fishingMinigame?: { destroy?: () => void } | null;
   minigame?: { destroy?: () => void } | null;
   character: {

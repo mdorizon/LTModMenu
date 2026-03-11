@@ -15,7 +15,6 @@ declare global {
     __gameApp: GameApp | null;
     __fishBite: FishBiteData | null;
     __lastFish: FishResultData | null;
-    __blockFishingFail: boolean;
     __playerPos: PlayerPos | null;
     __botPaused: boolean;
     __waypoints: Waypoint[];
