@@ -1,4 +1,4 @@
-import { calculateGold, getRarity } from "./fish-utils";
+import { calculateGold, getRarity } from "./fish-rarity";
 import { gameClick } from "@core/game";
 import { saveData } from "@core/storage";
 import { log } from "@core/logger";

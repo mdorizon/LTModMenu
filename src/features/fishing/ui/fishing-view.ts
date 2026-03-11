@@ -1,10 +1,10 @@
 import { mkHeader, bindNav, type RenderFn } from "@ui/components";
-import { fishingLoop, isFishingLoopRunning, updateHUD } from "./fishing-loop";
-import { renderForceFishing, bindForceFishing } from "./force-fishing";
+import { fishingLoop, isFishingLoopRunning, updateHUD } from "../fishing-loop";
+import { renderForceFishing, bindForceFishing } from "../force-fishing";
 import { saveData } from "@core/storage";
 import { log } from "@core/logger";
 
-export function renderFish(hud: HTMLElement, renderMainFn: RenderFn, pages: Record<string, RenderFn>): void {
+export function renderFishing(hud: HTMLElement, renderMainFn: RenderFn, pages: Record<string, RenderFn>): void {
   hud.innerHTML =
     mkHeader("Fishing", true) +
     '<div class="lt-body" style="padding:4px 0;">' +
@@ -38,7 +38,7 @@ export function renderFish(hud: HTMLElement, renderMainFn: RenderFn, pages: Reco
     if (!window.__botPaused && !isFishingLoopRunning()) {
       fishingLoop();
     }
-    renderFish(hud, renderMainFn, pages);
+    renderFishing(hud, renderMainFn, pages);
   };
 
   document.getElementById("lt-reset")!.onclick = () => {
@@ -76,7 +76,7 @@ export function renderFish(hud: HTMLElement, renderMainFn: RenderFn, pages: Reco
       };
       saveData("fishStats", window.__fishStats);
       log("UI", "Stats reset");
-      renderFish(hud, renderMainFn, pages);
+      renderFishing(hud, renderMainFn, pages);
     };
   };
 

@@ -1,10 +1,10 @@
 import { mkHeader, bindNav, type RenderFn } from "@ui/components";
 import { getPos, getCurrentMap } from "@core/game";
-import { doInterMapTP } from "./teleport";
+import { doInterMapTP } from "../teleport";
 import { saveData } from "@core/storage";
 import { log } from "@core/logger";
 
-export function renderTP(
+export function renderWaypoints(
   hud: HTMLElement,
   renderMainFn: RenderFn,
   pages: Record<string, RenderFn>,
@@ -57,7 +57,7 @@ export function renderTP(
     document.getElementById("lt-wdel-" + i)!.onclick = () => {
       window.__waypoints.splice(i, 1);
       saveData("waypoints", window.__waypoints);
-      renderTP(hud, renderMainFn, pages);
+      renderWaypoints(hud, renderMainFn, pages);
     };
   });
 
@@ -76,7 +76,7 @@ export function renderTP(
       });
       saveData("waypoints", window.__waypoints);
       log("UI", "Waypoint saved: " + name + " " + pos.x + ", " + pos.y);
-      renderTP(hud, renderMainFn, pages);
+      renderWaypoints(hud, renderMainFn, pages);
     } else {
       st.textContent = "Error: position unknown";
       st.style.color = "#e74c3c";

@@ -49,31 +49,32 @@ src/
 │   ├── websocket-hook.ts       # Intercepte WebSocket pour logger + fishing events
 │   └── types/
 │       ├── global.d.ts         # Window globals, GameScene, __DEV__
-│       └── player.d.ts         # PlayerPos, Waypoint, LocalPlayer, GameApp
+│       ├── player.d.ts         # PlayerPos, Waypoint, LocalPlayer, GameApp
+│       └── fish.d.ts           # FishStats, FishBiteData, FishResultData
 ├── features/
 │   ├── fishing/                # Auto-fishing bot + force fishing
 │   │   ├── data/fish-database.ts
-│   │   ├── types/fish.d.ts
+│   │   ├── ui/fishing-view.ts  # Vue HUD (stats + start/stop + force fishing)
 │   │   ├── fishing-loop.ts     # Bot state machine (5 phases)
 │   │   ├── challenge-solver.ts # FNV-1a solver + setupFishingGlobals()
-│   │   ├── fish-utils.ts       # calculateGold, getRarity
-│   │   ├── fish-page.ts        # UI page (stats + start/stop + force fishing)
+│   │   ├── fish-rarity.ts      # calculateGold, getRarity
 │   │   └── force-fishing.ts    # Sit + fishing animation hack
 │   ├── teleport/               # TP + POI + inter-map navigation
 │   │   ├── data/poi-database.ts
-│   │   ├── teleport.ts         # doTP, doInterMapTP, initSceneCache
-│   │   ├── poi-page.ts         # UI page POIs
-│   │   └── tp-page.ts          # UI page Waypoints
+│   │   ├── ui/
+│   │   │   ├── poi-view.ts     # Vue HUD POIs
+│   │   │   └── waypoints-view.ts # Vue HUD Waypoints
+│   │   └── teleport.ts         # doTP, doInterMapTP, initSceneCache
 │   └── actions/                # Actions joueur génériques
-│       ├── sit.ts              # toggleSit state machine
-│       └── actions-page.ts     # UI page Actions
+│       ├── ui/actions-view.ts  # Vue HUD Actions
+│       └── sit.ts              # toggleSit state machine
 └── ui/                         # Shell du menu (pas de logique métier)
     ├── hud.ts                  # Init HUD, drag, keyboard nav, retry gameApp
-    ├── main-page.ts            # Page d'accueil avec liens
+    ├── main-view.ts            # Vue d'accueil avec liens
     ├── components.ts           # mkHeader, mkItem, mkItemTag, bindNav
     ├── styles.ts               # CSS injecté (thème via CSS vars)
     ├── theme.ts                # Sync thème avec le site lofi.town
-    ├── theme-database.ts       # CSS vars mapping + couleurs par défaut
+    ├── data/theme-database.ts  # CSS vars mapping + couleurs par défaut
     └── dev-tools.ts            # Toggle WS All Logs (__DEV__ only)
 ```
 
@@ -100,7 +101,7 @@ L'ordre est critique — webpack spy et WS hook doivent être installés avant q
 ### Conventions
 
 - State global via `window.__*` (gameApp, gameWS, fishStats, waypoints, etc.)
-- Pages HUD : chaque page est une fonction `render*(hud, renderMainFn, pages)`
+- Vues HUD : chaque vue est dans `feature/ui/*-view.ts`, fonction `render*(hud, renderMainFn, pages)`
 - Navigation : bindNav() mappe les IDs d'éléments aux pages
 - Keyboard nav : touches 1-5 (toggle, up, down, click, back)
 - Le bot fishing utilise les globals window pour communiquer (fishBite, lastFish, blockFishingFail)

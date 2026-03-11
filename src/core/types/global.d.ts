@@ -1,4 +1,4 @@
-import type { FishStats, FishBiteData, FishResultData } from "@features/fishing/types/fish.d";
+import type { FishStats, FishBiteData, FishResultData } from "./fish.d";
 import type { PlayerPos, Waypoint, GameApp } from "./player";
 
 export interface GameScene {

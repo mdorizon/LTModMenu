@@ -1,4 +1,4 @@
-import { SITE_VARS, DEFAULT_COLORS, darken } from "./theme-database";
+import { SITE_VARS, DEFAULT_COLORS, darken } from "./data/theme-database";
 import { log } from "@core/logger";
 
 let lastApplied = "";

@@ -1,10 +1,10 @@
 import { CSS } from "./styles";
 import type { RenderFn } from "./components";
-import { renderMain } from "./main-page";
-import { renderPOI } from "@features/teleport/poi-page";
-import { renderTP } from "@features/teleport/tp-page";
-import { renderActions } from "@features/actions/actions-page";
-import { renderFish } from "@features/fishing/fish-page";
+import { renderMain } from "./main-view";
+import { renderPOI } from "@features/teleport/ui/poi-view";
+import { renderWaypoints } from "@features/teleport/ui/waypoints-view";
+import { renderActions } from "@features/actions/ui/actions-view";
+import { renderFishing } from "@features/fishing/ui/fishing-view";
 import { startAutoSave } from "@core/storage";
 import { initSceneCache } from "@features/teleport/teleport";
 import { initThemeSync } from "./theme";
@@ -42,9 +42,9 @@ export function initHUD(): void {
 
   const pages: Record<string, RenderFn> = {
     poi: () => renderPOI(hud, renderMainFn, pages),
-    tp: () => renderTP(hud, renderMainFn, pages),
+    tp: () => renderWaypoints(hud, renderMainFn, pages),
     actions: () => renderActions(hud, renderMainFn, pages),
-    fish: () => renderFish(hud, renderMainFn, pages),
+    fish: () => renderFishing(hud, renderMainFn, pages),
   };
 
   // ── Drag ──
