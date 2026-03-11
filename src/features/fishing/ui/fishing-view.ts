@@ -1,6 +1,7 @@
 import { mkHeader, bindNav, type RenderFn } from "@ui/components";
 import { fishingLoop, isFishingLoopRunning, stopFishingLoop, updateHUD } from "../fishing-loop";
 import { renderForceFishing, bindForceFishing } from "../force-fishing";
+import { showModal } from "@ui/modal";
 import { saveData } from "@core/storage";
 import { log } from "@core/logger";
 
@@ -44,42 +45,27 @@ export function renderFishing(hud: HTMLElement, renderMainFn: RenderFn, pages: R
   };
 
   document.getElementById("lt-reset")!.onclick = () => {
-    const overlay = document.createElement("div");
-    overlay.id = "lt-modal-overlay";
-    overlay.innerHTML =
-      '<div id="lt-modal">' +
-      '<div id="lt-modal-title">Reset Stats</div>' +
-      '<div id="lt-modal-msg">Reset all fishing stats? This action cannot be undone.</div>' +
-      '<div id="lt-modal-actions">' +
-      '<button id="lt-modal-cancel">Cancel</button>' +
-      '<button id="lt-modal-confirm">Reset</button>' +
-      "</div></div>";
-    document.body.appendChild(overlay);
-
-    const close = () => document.body.removeChild(overlay);
-
-    document.getElementById("lt-modal-cancel")!.onclick = close;
-    overlay.onclick = (e) => { if (e.target === overlay) close(); };
-
-    document.getElementById("lt-modal-confirm")!.onclick = () => {
-      close();
-      window.__fishStats = {
-        common: 0,
-        uncommon: 0,
-        rare: 0,
-        epic: 0,
-        legendary: 0,
-        secret: 0,
-        event: 0,
-        unknown: 0,
-        total: 0,
-        gold: 0,
-        last_fish: "",
-      };
-      saveData("fishStats", window.__fishStats);
-      log("UI", "Stats reset");
-      renderFishing(hud, renderMainFn, pages);
-    };
+    showModal({
+      title: "Reset Stats",
+      message: "Reset all fishing stats? This action cannot be undone.",
+      style: "danger",
+      buttons: [
+        { label: "Cancel", style: "default", onClick: () => {} },
+        {
+          label: "Reset",
+          style: "danger",
+          onClick: () => {
+            window.__fishStats = {
+              common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0,
+              secret: 0, event: 0, unknown: 0, total: 0, gold: 0, last_fish: "",
+            };
+            saveData("fishStats", window.__fishStats);
+            log("UI", "Stats reset");
+            renderFishing(hud, renderMainFn, pages);
+          },
+        },
+      ],
+    });
   };
 
   bindForceFishing();
