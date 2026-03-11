@@ -1,13 +1,19 @@
 export interface ModalButton {
   label: string;
   style?: "danger" | "warning" | "success" | "default";
-  onClick: () => void;
+  onClick: (checkboxChecked?: boolean) => void;
+}
+
+export interface ModalCheckbox {
+  label: string;
+  defaultChecked?: boolean;
 }
 
 export interface ModalOptions {
   title: string;
   message: string;
   style?: "danger" | "warning" | "default";
+  checkbox?: ModalCheckbox;
   buttons: ModalButton[];
 }
 
@@ -42,10 +48,18 @@ export function showModal(opts: ModalOptions): void {
     })
     .join("");
 
+  const checkboxHtml = opts.checkbox
+    ? '<label style="display:flex;align-items:center;gap:10px;margin:12px 0 4px;font-size:14px;color:var(--lt-text-muted,#8a8aaa);cursor:pointer;">' +
+      '<input type="checkbox" id="lt-modal-checkbox"' + (opts.checkbox.defaultChecked ? " checked" : "") + ' style="width:16px;height:16px;margin:0;cursor:pointer;accent-color:#d4a44a;flex-shrink:0;vertical-align:middle;">' +
+      '<span style="vertical-align:middle;">' + opts.checkbox.label + "</span>" +
+      "</label>"
+    : "";
+
   overlay.innerHTML =
     '<div id="lt-modal" style="border-color:' + borderColors[modalStyle] + '">' +
     '<div id="lt-modal-title" style="color:' + titleColors[modalStyle] + '">' + opts.title + "</div>" +
     '<div id="lt-modal-msg">' + opts.message + "</div>" +
+    checkboxHtml +
     '<div id="lt-modal-actions">' + buttonsHtml + "</div></div>";
 
   document.body.appendChild(overlay);
@@ -61,8 +75,10 @@ export function showModal(opts: ModalOptions): void {
   overlay.querySelectorAll<HTMLButtonElement>(".lt-modal-btn").forEach((btn) => {
     const idx = parseInt(btn.dataset.idx || "0", 10);
     btn.onclick = () => {
+      const checkbox = overlay.querySelector<HTMLInputElement>("#lt-modal-checkbox");
+      const checked = checkbox ? checkbox.checked : undefined;
       close();
-      opts.buttons[idx].onClick();
+      opts.buttons[idx].onClick(checked);
     };
   });
 }

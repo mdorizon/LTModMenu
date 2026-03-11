@@ -23,7 +23,7 @@ export function stopFishingLoop(): void {
 
   // Clean up FishingManager state to avoid getting stuck
   const fm = getFishingManager();
-  if (!fm) return;
+  if (!fm || (!fm.isFishing && !fm.playingMiniGame && !fm.resultUI)) return;
   try {
     if (fm.playingMiniGame) {
       fm.stopMiniGame();
@@ -37,10 +37,8 @@ export function stopFishingLoop(): void {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: " ", code: "Space" }));
       log("BOT", "Cleaned up: dismissed result modal");
     }
-    // Restore input
     fm.input?.stopInput?.(false, "fishing");
     fm.input?.stopInput?.(false, "waiting-for-result");
-    fm.castButton?.show?.();
   } catch (e) {
     log("BOT", "Cleanup error: " + (e as Error).message);
   }

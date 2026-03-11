@@ -4,6 +4,26 @@ import { renderForceFishing, bindForceFishing } from "../force-fishing";
 import { showModal } from "@ui/modal";
 import { saveData } from "@core/storage";
 import { log } from "@core/logger";
+import { getCurrentMap } from "@core/game";
+
+let mapWatchInterval: ReturnType<typeof setInterval> | null = null;
+
+function startMapWatch(hud: HTMLElement, renderMainFn: RenderFn, pages: Record<string, RenderFn>): void {
+  if (mapWatchInterval) clearInterval(mapWatchInterval);
+  let lastMap = getCurrentMap();
+  mapWatchInterval = setInterval(() => {
+    if (!document.getElementById("lt-toggle")) {
+      clearInterval(mapWatchInterval!);
+      mapWatchInterval = null;
+      return;
+    }
+    const map = getCurrentMap();
+    if (map !== lastMap) {
+      lastMap = map;
+      renderFishing(hud, renderMainFn, pages);
+    }
+  }, 500);
+}
 
 export function renderFishing(hud: HTMLElement, renderMainFn: RenderFn, pages: Record<string, RenderFn>): void {
   hud.innerHTML =
@@ -27,9 +47,7 @@ export function renderFishing(hud: HTMLElement, renderMainFn: RenderFn, pages: R
     (window.__botPaused ? "START" : "STOP") +
     '</button>' +
     '<button class="lt-action lt-danger" id="lt-reset">Reset Stats</button>' +
-    '<div class="lt-sep"></div>' +
     renderForceFishing() +
-    '<div class="lt-status" id="lt-fish-status"></div>' +
     "</div>";
   bindNav(renderMainFn, pages);
 
@@ -71,4 +89,5 @@ export function renderFishing(hud: HTMLElement, renderMainFn: RenderFn, pages: R
   bindForceFishing();
 
   if (window.__fishStats) updateHUD();
+  startMapWatch(hud, renderMainFn, pages);
 }
