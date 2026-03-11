@@ -20,8 +20,6 @@ declare global {
     __waypoints: Waypoint[];
     __fishStats: FishStats;
     __solveFishingChallenge: (challenge: string) => string;
-    __autoSolveChallenge: (challenge: string) => boolean;
-    __forceEndMinigame: () => boolean;
     __sceneCache: Map<string, GameScene>;
     __wpRequire?: (id: number) => any;
     __ltSpyRetry?: () => boolean;
