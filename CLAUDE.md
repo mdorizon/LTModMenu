@@ -33,8 +33,11 @@ Userscript (Tampermonkey) mod menu pour le jeu web lofi.town. TypeScript + Webpa
 - TypeScript strict, target ES2017, bundler moduleResolution
 - Webpack 5 avec ts-loader, output IIFE non-minifié
 - `__DEV__` flag injecté par DefinePlugin (true en mode development)
-- `npm run build` (prod), `npm run dev` (watch + log server), `npm run watch` (watch seul)
+- **Bun** (pas npm) : `bun run build` (prod), `bun run dev` (watch + log server), `bun run watch` (watch seul)
+- L'utilisateur est en général en `bun run dev` (watch auto-rebuild) — ne PAS lancer de build manuellement
+- Pour vérifier que le code compile, lire les erreurs TS dans l'IDE plutôt que lancer un build
 - Log server dev : `scripts/log-server.ts` (Bun HTTP sur port 8642)
+- Logs de debug : `logs/ltmodmenu.log` (logs principaux) et `logs/ws-all.log` (WS all logs)
 
 ### Architecture (Vertical Slices)
 
@@ -104,4 +107,5 @@ L'ordre est critique — webpack spy et WS hook doivent être installés avant q
 - Vues HUD : chaque vue est dans `feature/ui/*-view.ts`, fonction `render*(hud, renderMainFn, pages)`
 - Navigation : bindNav() mappe les IDs d'éléments aux pages
 - Keyboard nav : touches 1-5 (toggle, up, down, click, back)
-- Le bot fishing utilise les globals window pour communiquer (fishBite, lastFish, blockFishingFail)
+- Le bot fishing utilise le FishingManager du jeu (gameObjects[2]) : startFishing(), miniGame(), handleMinigameClick(), win() auto, resultUI dismiss
+- Le minigame est un cadran avec un triangle rotatif : cliquer quand arrowAngle (fixe 270°) est dans la zone [rotation, rotation+thickness]
