@@ -1,4 +1,4 @@
-import { appendFile, mkdir } from "fs/promises";
+import { readFile, writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 
@@ -49,7 +49,8 @@ const server = Bun.serve({
         const body = await req.json();
         const entries: string[] = Array.isArray(body) ? body : [body];
         const text = entries.join("\n") + "\n";
-        await appendFile(targetFile, text);
+        const existing = existsSync(targetFile) ? await readFile(targetFile, "utf-8") : "";
+        await writeFile(targetFile, text + existing);
         await rotateIfNeeded(targetFile);
         return new Response("ok", {
           headers: { "Access-Control-Allow-Origin": "*" },

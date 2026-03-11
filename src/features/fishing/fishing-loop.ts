@@ -1,72 +1,53 @@
 import { calculateGold, getRarity } from "./fish-rarity";
-import { gameClick } from "@core/game";
 import { saveData } from "@core/storage";
 import { log } from "@core/logger";
 
 let fishingLoopRunning = false;
 
+function getFishingManager(): any {
+  const gameObjects = (window.__gameApp as any)?.gameObjects;
+  if (!gameObjects) return null;
+  for (let i = 0; i < gameObjects.length; i++) {
+    if (gameObjects[i]?.name === "FishingManager") return gameObjects[i];
+  }
+  return null;
+}
+
 export function isFishingLoopRunning(): boolean {
   return fishingLoopRunning;
 }
 
-export function sleep(ms: number): Promise<void> {
+export function stopFishingLoop(): void {
+  fishingLoopRunning = false;
+  log("BOT", "=== FISHING LOOP STOPPED ===");
+
+  // Clean up FishingManager state to avoid getting stuck
+  const fm = getFishingManager();
+  if (!fm) return;
+  try {
+    if (fm.playingMiniGame) {
+      fm.stopMiniGame();
+      log("BOT", "Cleaned up: stopped minigame");
+    }
+    if (fm.isFishing) {
+      fm.stopFishing();
+      log("BOT", "Cleaned up: stopped fishing");
+    }
+    if (fm.resultUI) {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: " ", code: "Space" }));
+      log("BOT", "Cleaned up: dismissed result modal");
+    }
+    // Restore input
+    fm.input?.stopInput?.(false, "fishing");
+    fm.input?.stopInput?.(false, "waiting-for-result");
+    fm.castButton?.show?.();
+  } catch (e) {
+    log("BOT", "Cleanup error: " + (e as Error).message);
+  }
+}
+
+function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-export function isCastVisible(): HTMLElement | null {
-  const castBtn = document.getElementById("cast-button");
-  if (castBtn && castBtn.offsetParent !== null) {
-    log("BOT", "CAST found by ID");
-    return castBtn;
-  }
-
-  const byClass = document.querySelector('[class*="cast" i]') as HTMLElement | null;
-  if (byClass && byClass.offsetParent !== null) {
-    log("BOT", "CAST found by class: " + byClass.className);
-    return byClass;
-  }
-
-  const buttons = document.querySelectorAll('button, div[role="button"], [onclick]');
-  for (let i = 0; i < buttons.length; i++) {
-    const txt = (buttons[i].textContent || "").trim().toLowerCase();
-    if (txt.includes("cast")) {
-      log("BOT", "CAST found by text: " + txt);
-      return buttons[i] as HTMLElement;
-    }
-  }
-
-  const imgs = document.querySelectorAll('img[alt*="cast" i], img[src*="cast" i]');
-  if (imgs.length > 0) {
-    log("BOT", "CAST found by img");
-    return (imgs[0] as HTMLElement).closest("button") || (imgs[0] as HTMLElement).parentElement;
-  }
-
-  return null;
-}
-
-export function isReelVisible(): HTMLElement | null {
-  const reelBtn = document.getElementById("reel-button");
-  if (reelBtn && reelBtn.offsetParent !== null) {
-    log("BOT", "REEL found by ID");
-    return reelBtn;
-  }
-
-  const byClass = document.querySelector('[class*="reel" i]') as HTMLElement | null;
-  if (byClass && byClass.offsetParent !== null) {
-    log("BOT", "REEL found by class: " + byClass.className);
-    return byClass;
-  }
-
-  const buttons = document.querySelectorAll('button, div[role="button"], [onclick]');
-  for (let i = 0; i < buttons.length; i++) {
-    const txt = (buttons[i].textContent || "").trim().toLowerCase();
-    if (txt.includes("reel")) {
-      log("BOT", "REEL found by text: " + txt);
-      return buttons[i] as HTMLElement;
-    }
-  }
-
-  return null;
 }
 
 export function updateHUD(): void {
@@ -87,6 +68,152 @@ export function updateHUD(): void {
   }
 }
 
+function isLocalPlayerSeated(): boolean {
+  const lp = window.__gameApp?.localPlayer;
+  if (!lp) return false;
+  return !!lp.currentSeatId;
+}
+
+// ── Step 1: Cast the line via FishingManager.startFishing() ──
+function castLine(): boolean {
+  const fm = getFishingManager();
+  if (!fm) {
+    log("BOT", "[1] FishingManager not found");
+    return false;
+  }
+  if (fm.isFishing) {
+    log("BOT", "[1] Already fishing");
+    return true;
+  }
+  fm.startFishing();
+  log("BOT", "[1] Line cast via startFishing()");
+  return true;
+}
+
+// ── Step 2: Wait for fish bite (reel button appears) ──
+async function waitForBite(): Promise<boolean> {
+  const fm = getFishingManager();
+  if (!fm) return false;
+  const start = Date.now();
+  log("BOT", "[2] Waiting for fish bite...");
+
+  while (fishingLoopRunning && !window.__botPaused) {
+    if (fm.reelButton?.sprite?.visible) {
+      log("BOT", "[2] Fish bite! " + (fm.currentFish?.name || "unknown"));
+      return true;
+    }
+    if (!fm.isFishing) {
+      log("BOT", "[2] Stopped fishing unexpectedly");
+      return false;
+    }
+    if (Date.now() - start > 90000) {
+      log("BOT", "[2] TIMEOUT 90s waiting for bite");
+      return false;
+    }
+    await sleep(100);
+  }
+  return false;
+}
+
+// ── Step 3: Start and auto-play the minigame ──
+async function playMinigame(): Promise<boolean> {
+  const fm = getFishingManager();
+  if (!fm) return false;
+
+  // Launch the minigame
+  fm.miniGame();
+  log("BOT", "[3] Minigame started");
+
+  // Wait for playingMiniGame to become true (animation delay)
+  await sleep(600);
+
+  let clickCount = 0;
+  const start = Date.now();
+
+  while (fishingLoopRunning && fm.playingMiniGame) {
+    if (fm.disableMinigameInput) {
+      await sleep(30);
+      continue;
+    }
+
+    // Check if arrow (fixed at arrowAngle) is inside the rotating triangle zone
+    const triStart = ((180 * fm.rotatingTriangle.rotation / Math.PI) % 360 + 360) % 360;
+    const triEnd = (triStart + fm.triangleThickness) % 360;
+    const arrow = ((fm.arrowAngle % 360) + 360) % 360;
+
+    let inZone: boolean;
+    if (triStart <= triEnd) {
+      inZone = arrow >= triStart && arrow <= triEnd;
+    } else {
+      inZone = arrow >= triStart || arrow <= triEnd;
+    }
+
+    if (inZone) {
+      fm.handleMinigameClick();
+      clickCount++;
+      // Brief cooldown to avoid double-clicking on the same pass
+      await sleep(150);
+      continue;
+    }
+
+    // Safety timeout
+    if (Date.now() - start > 30000) {
+      log("BOT", "[3] Minigame TIMEOUT 30s");
+      return false;
+    }
+
+    await sleep(20);
+  }
+
+  log("BOT", "[3] Minigame ended after " + clickCount + " clicks, fishLevel=" + fm.fishLevel);
+  return true;
+}
+
+// ── Step 4: Wait for result and dismiss modal ──
+async function waitAndDismissResult(): Promise<{ name: string; weight: number; isShiny: boolean } | null> {
+  const fm = getFishingManager();
+  if (!fm) return null;
+  const start = Date.now();
+  log("BOT", "[4] Waiting for result...");
+
+  // Wait for the fishing-result WS event (sets __lastFish)
+  while (fishingLoopRunning) {
+    if (window.__lastFish) break;
+    if (Date.now() - start > 15000) {
+      log("BOT", "[4] TIMEOUT waiting for fishing-result");
+      break;
+    }
+    await sleep(100);
+  }
+
+  const fishData = window.__lastFish;
+  window.__lastFish = null;
+
+  // Wait for resultUI to appear, then dismiss it
+  const resultStart = Date.now();
+  while (Date.now() - resultStart < 5000) {
+    if (fm.resultUI) {
+      // Wait for the animation to finish
+      await sleep(1500);
+      // Dismiss via keydown (same as player pressing any key)
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: " ", code: "Space" }));
+      log("BOT", "[4] Result modal dismissed");
+      await sleep(500);
+      break;
+    }
+    await sleep(100);
+  }
+
+  if (!fishData) {
+    log("BOT", "[4] No fish data received");
+    return null;
+  }
+
+  log("BOT", "[4] Fish result: " + fishData.name + " " + fishData.weight + "kg shiny=" + fishData.isShiny);
+  return { name: fishData.name || "", weight: fishData.weight || 0, isShiny: fishData.isShiny || false };
+}
+
+// ── Main fishing loop ──
 export async function fishingLoop(): Promise<void> {
   if (fishingLoopRunning) {
     log("BOT", "fishingLoop already running, skipping");
@@ -95,169 +222,68 @@ export async function fishingLoop(): Promise<void> {
   fishingLoopRunning = true;
   log("BOT", "=== FISHING LOOP STARTED ===");
 
-  while (true) {
+  while (fishingLoopRunning) {
     if (window.__botPaused) {
       await sleep(300);
       continue;
     }
 
-    // ── 1. CAST ──
-    log("BOT", "[1] Searching for CAST button...");
-    let castFound = false;
-    const castSearchStart = Date.now();
-    while (!castFound) {
-      if (window.__botPaused) {
-        await sleep(300);
-        continue;
+    // ── Wait until player is seated on a fishing spot ──
+    if (!isLocalPlayerSeated()) {
+      log("BOT", "[0] Waiting for player to sit on a fishing spot...");
+      while (!isLocalPlayerSeated() && fishingLoopRunning && !window.__botPaused) {
+        await sleep(500);
       }
+      if (!fishingLoopRunning || window.__botPaused) continue;
+      log("BOT", "[0] Player is seated!");
+    }
 
-      const castEl = isCastVisible();
-      if (castEl) {
-        await sleep(100 + Math.random() * 200);
-        log("BOT", "[1] Clicking CAST button");
-        castEl.click();
-        log("BOT", "[1] CAST CLICKED!");
-        await sleep(1000);
-        castFound = true;
-      } else {
-        if ((Date.now() - castSearchStart) % 5000 < 150) {
-          log("BOT", "[1] Still searching for CAST... (" + Math.round((Date.now() - castSearchStart) / 1000) + "s)");
-        }
-      }
-      await sleep(100);
+    // ── 1. Cast the line ──
+    if (!castLine()) {
+      await sleep(1000);
+      continue;
     }
 
     // ── 2. Wait for fish bite ──
-    log("BOT", "[2] Waiting for fish bite...");
-    let biteData = null;
-    let start = Date.now();
-    while (!biteData) {
-      if (window.__botPaused) {
-        await sleep(300);
-        continue;
-      }
-      const b = window.__fishBite;
-      if (b) {
-        window.__fishBite = null;
-        biteData = b;
-        log("BOT", "[2] FISH BITE detected!", b);
-        break;
-      }
-      if (Date.now() - start > 45000) {
-        log("BOT", "[2] TIMEOUT 45s, retrying cycle...");
-        break;
-      }
-      await sleep(100);
-    }
+    const gotBite = await waitForBite();
+    if (!gotBite) continue;
 
-    if (!biteData) {
-      log("BOT", "[2] No bite data, restarting cycle");
+    // ── 3. Play the minigame ──
+    const minigameOk = await playMinigame();
+    if (!minigameOk) {
+      await sleep(1000);
       continue;
     }
 
-    // ── 3. REEL + Auto-solve ──
-    const challenge = biteData.challenge || "";
-    log("BOT", "[3] Challenge present: " + !!challenge);
+    // ── 4. Wait for result and dismiss ──
+    const result = await waitAndDismissResult();
 
-    await sleep(100 + Math.random() * 200);
-    const reelEl = isReelVisible();
-    if (reelEl) {
-      log("BOT", "[3] Clicking REEL");
-      reelEl.click();
-      log("BOT", "[3] REEL CLICKED!");
+    // ── 5. Process fish stats ──
+    if (result) {
+      const rarity = getRarity(result.name);
+      let statKey = rarity;
+      if (rarity === "halloween" || rarity === "christmas") statKey = "event";
+      const goldEarned = calculateGold(result.name, result.weight, result.isShiny);
+
+      const st = window.__fishStats;
+      if (st[statKey] !== undefined) (st[statKey] as number)++;
+      else st.unknown++;
+      st.total++;
+      (st.gold as number) += goldEarned;
+
+      const shinyTag = result.isShiny ? " SHINY!" : "";
+      const goldStr = goldEarned ? " +" + goldEarned + "g" : "";
+      st.last_fish = result.name + " (" + rarity + ") " + result.weight + "kg" + shinyTag + goldStr;
+
+      updateHUD();
+      saveData("fishStats", window.__fishStats);
+
+      log("BOT", "=== FISH #" + st.total + ": " + result.name + " [" + rarity.toUpperCase() + "] " + result.weight + "kg" + shinyTag + " | +" + goldEarned + "g (total: " + st.gold + "g) ===");
     } else {
-      log("BOT", "[3] WARNING: REEL button not found!");
+      log("BOT", "[5] No fish data, skipping stats");
     }
 
-    if (challenge) {
-      log("BOT", "[3] Waiting 500ms before auto-solve...");
-      await sleep(500);
-      window.__blockFishingFail = true;
-      log("BOT", "[3] Fail blocking ON");
-      const solved = window.__autoSolveChallenge(challenge);
-      log("BOT", "[3] Auto-solve result: " + solved);
-    }
-
-    // ── 4. Wait for fishing-result ──
-    log("BOT", "[4] Waiting for fishing-result...");
-    let fishData = null;
-    start = Date.now();
-    while (!fishData) {
-      fishData = window.__lastFish;
-      if (fishData) {
-        log("BOT", "[4] FISH RESULT received", fishData);
-        break;
-      }
-      if (Date.now() - start > 10000) {
-        log("BOT", "[4] TIMEOUT 10s waiting for result");
-        break;
-      }
-      await sleep(200);
-    }
-
-    // Force end minigame
-    if (challenge && fishData) {
-      log("BOT", "[4] Force ending minigame...");
-      window.__forceEndMinigame();
-      await sleep(300);
-      window.__blockFishingFail = false;
-      log("BOT", "[4] Fail blocking OFF");
-    }
-
-    // ── 5. Process fish ──
-    await sleep(500);
-    if (!fishData) fishData = window.__lastFish;
-    window.__lastFish = null;
-
-    if (!fishData) {
-      log("BOT", "[5] No fish data at all, skipping");
-      await sleep(300);
-      const closeBtn = document.querySelector('[class*="close" i]') as HTMLElement | null;
-      if (closeBtn) {
-        log("BOT", "[5] Clicking close button");
-        closeBtn.click();
-      }
-      continue;
-    }
-
-    const fishName = fishData.name || "";
-    const weight = fishData.weight || 0;
-    const isShiny = fishData.isShiny || false;
-    const rarity = getRarity(fishName);
-    let statKey = rarity;
-    if (rarity === "halloween" || rarity === "christmas") statKey = "event";
-    const goldEarned = calculateGold(fishName, weight, isShiny);
-
-    log("BOT", "[5] Fish: " + fishName + " | " + rarity + " | " + weight + "kg | shiny=" + isShiny + " | gold=" + goldEarned);
-
-    const st = window.__fishStats;
-    if (st[statKey] !== undefined) (st[statKey] as number)++;
-    else st.unknown++;
-    st.total++;
-    (st.gold as number) += goldEarned;
-
-    const shinyTag = isShiny ? " SHINY!" : "";
-    const goldStr = goldEarned ? " +" + goldEarned + "g" : "";
-    st.last_fish = fishName + " (" + rarity + ") " + weight + "kg" + shinyTag + goldStr;
-
-    updateHUD();
-    saveData("fishStats", window.__fishStats);
-
-    // Close popup
-    log("BOT", "[5] Closing popup...");
-    await sleep(300);
-    const closeBtn = document.querySelector('[class*="close" i]') as HTMLElement | null;
-    if (closeBtn) {
-      log("BOT", "[5] Found close button, clicking");
-      closeBtn.click();
-    } else {
-      log("BOT", "[5] No close button, clicking center");
-      gameClick(window.innerWidth / 2, window.innerHeight * 0.6);
-    }
-    await sleep(150);
-    gameClick(window.innerWidth / 2, window.innerHeight * 0.6);
-    await sleep(300 + Math.random() * 300);
-
-    log("BOT", "=== FISH #" + st.total + ": " + fishName + " [" + rarity.toUpperCase() + "] " + weight + "kg" + shinyTag + " | +" + goldEarned + "g (total: " + st.gold + "g) ===");
+    // Brief pause before next cast
+    await sleep(500 + Math.random() * 500);
   }
 }

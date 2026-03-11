@@ -32,41 +32,39 @@ export function bindForceFishing(): void {
   document.getElementById("lt-fish-here")!.onclick = () => {
     log("ACTION", "FISH HERE button clicked");
     const app = window.__gameApp;
-    if (app && app.localPlayer) {
-      const lp = app.localPlayer;
-      const dir = lp.direction || "down";
-      lp.sit("portable-" + dir);
-      setTimeout(() => {
-        if (lp.setSitAnimation) lp.setSitAnimation("fishing");
-        wsSend("updateSitAnimation", "fishing");
+    if (!app?.localPlayer) return;
 
-        const animDir = dir === "right" || dir === "left" ? "side" : dir;
-        log("ACTION", "Force fishing: dir=" + dir + " animDir=" + animDir);
+    const lp = app.localPlayer;
+    const dir = lp.direction || "down";
+    lp.sit("portable-" + dir);
+    setTimeout(() => {
+      if (lp.setSitAnimation) lp.setSitAnimation("fishing");
+      wsSend("updateSitAnimation", "fishing");
 
+      const animDir = dir === "right" || dir === "left" ? "side" : dir;
+      log("ACTION", "Force fishing: dir=" + dir + " animDir=" + animDir);
+
+      try {
+        lp.changeAnimationState("fishing_" + animDir);
+      } catch (e) {
+        log("ACTION", "changeAnimationState failed: " + (e as Error).message);
+      }
+
+      if (lp.character) {
         try {
-          lp.changeAnimationState("fishing_" + animDir);
-          log("ACTION", "changeAnimationState OK");
+          if (lp.character.removeFishingRod) lp.character.removeFishingRod();
+          if (lp.character.takeOutFishingRod) lp.character.takeOutFishingRod(dir);
         } catch (e) {
-          log("ACTION", "changeAnimationState failed: " + (e as Error).message);
+          log("ACTION", "Failed to show fishing rod sprite: " + (e as Error).message);
         }
+      }
+      watchForUnsit();
 
-        if (lp.character) {
-          try {
-            if (lp.character.removeFishingRod) lp.character.removeFishingRod();
-            if (lp.character.takeOutFishingRod) lp.character.takeOutFishingRod(dir);
-            log("ACTION", "Fishing rod sprite OK");
-          } catch (e) {
-            log("ACTION", "Failed to show fishing rod sprite: " + (e as Error).message);
-          }
-        }
-        watchForUnsit();
-
-        const status = document.getElementById("lt-fish-status");
-        if (status) {
-          status.textContent = "Fishing forced";
-          status.style.color = "#5a9af0";
-        }
-      }, 500);
-    }
+      const status = document.getElementById("lt-fish-status");
+      if (status) {
+        status.textContent = "Fishing forced";
+        status.style.color = "#5a9af0";
+      }
+    }, 500);
   };
 }

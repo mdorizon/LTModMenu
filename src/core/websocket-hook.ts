@@ -43,15 +43,6 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
           }
         }
 
-        // Block fail messages
-        if (
-          window.__blockFishingFail &&
-          data.includes("getFishingResult") &&
-          data.includes('"fail"')
-        ) {
-          log("WS", "BLOCKED fail message!");
-          return;
-        }
       }
       return _origSend(data);
     };
@@ -93,8 +84,6 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
 
           // Events that are always ours (responses to our own actions)
           const localEvents = [
-            "fishCaught",
-            "fishing-result",
             "connected",
             "fishingFrenzyUpdate",
             "focus-stats-updated",
@@ -156,14 +145,25 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
           // Log the event
           log("WS", "RECV: " + data.substring(0, 200));
 
-          // Handle specific events
+          // Handle fishing events (only for local player)
           if (eventName === "fishCaught" && eventData) {
-            log("WS", ">>> FISH CAUGHT EVENT <<<");
-            window.__fishBite = eventData;
-            log("WS", "Fish bite data: " + JSON.stringify(eventData).substring(0, 200));
+            const lp = window.__gameApp?.localPlayer;
+            if (lp && lp.currentSeatId) {
+              log("WS", ">>> FISH CAUGHT EVENT <<<");
+              window.__fishBite = eventData;
+              log("WS", "Fish bite data: " + JSON.stringify(eventData).substring(0, 200));
+            } else {
+              logWsAll("RECV [other:fishCaught]: " + data.substring(0, 200));
+              return;
+            }
           }
 
           if (eventName === "fishing-result" && eventData) {
+            const myId = window.__localPlayerId;
+            if (myId && eventData.userId && String(eventData.userId) !== myId) {
+              logWsAll("RECV [other:fishing-result]: " + data.substring(0, 200));
+              return;
+            }
             log("WS", ">>> FISHING RESULT EVENT <<<");
             window.__lastFish = eventData;
             log("WS", "Fish result: " + JSON.stringify(eventData).substring(0, 200));
