@@ -1,6 +1,6 @@
 // Side-effect module: hooks webpackChunk_N_E.push to capture gameApp
 
-import { log } from "../utils/logger";
+import { log } from "./logger";
 
 function inspectLocalPlayerForId(gameApp: any): void {
   try {

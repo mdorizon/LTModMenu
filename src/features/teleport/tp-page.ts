@@ -1,7 +1,8 @@
-import { mkHeader, bindNav, type RenderFn } from "../components";
-import { getPos, getCurrentMap, doInterMapTP } from "../../game/player-actions";
-import { saveData } from "../../storage/storage";
-import { log } from "../../utils/logger";
+import { mkHeader, bindNav, type RenderFn } from "../../ui/components";
+import { getPos, getCurrentMap } from "../../core/game";
+import { doInterMapTP } from "./teleport";
+import { saveData } from "../../core/storage";
+import { log } from "../../core/logger";
 
 export function renderTP(
   hud: HTMLElement,

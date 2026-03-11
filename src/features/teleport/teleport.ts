@@ -1,37 +1,6 @@
-import { solveFishingChallenge } from "./challenge-solver";
-import type { PlayerPos } from "../types/player";
-import type { GameScene } from "../types/global";
-import { log } from "../utils/logger";
-
-export function wsSend(ev: string, data: unknown): boolean {
-  if (window.__gameWS && window.__gameWS.readyState === 1) {
-    window.__gameWS.send("42" + JSON.stringify([ev, data]));
-    log("ACTION", "wsSend: " + ev);
-    return true;
-  }
-  log("ACTION", "wsSend FAILED: " + ev + " - WS not ready");
-  return false;
-}
-
-export function gameClick(x: number, y: number): void {
-  const canvas = document.querySelector("canvas");
-  if (!canvas) {
-    log("ACTION", "gameClick: no canvas found");
-    return;
-  }
-  const rect = canvas.getBoundingClientRect();
-  const opts: MouseEventInit = {
-    bubbles: true,
-    cancelable: true,
-    clientX: rect.left + x,
-    clientY: rect.top + y,
-    button: 0,
-  };
-  canvas.dispatchEvent(new MouseEvent("mousedown", opts));
-  canvas.dispatchEvent(new MouseEvent("mouseup", opts));
-  canvas.dispatchEvent(new MouseEvent("click", opts));
-  log("ACTION", "gameClick at: " + x + ", " + y);
-}
+import { wsSend } from "../../core/game";
+import type { GameScene } from "../../core/types/global";
+import { log } from "../../core/logger";
 
 export function doTP(x: number, y: number, dir: string): boolean {
   log("TP", "doTP called: " + x + ", " + y + ", " + dir);
@@ -63,68 +32,6 @@ export function doTP(x: number, y: number, dir: string): boolean {
   }
   log("TP", "doTP FAILED: no gameApp or localPlayer");
   return false;
-}
-
-export function getPos(): PlayerPos | null {
-  const app = window.__gameApp;
-  if (app && app.localPlayer) {
-    const lp = app.localPlayer;
-    return {
-      x: Math.round(lp.currentPos.x),
-      y: Math.round(lp.currentPos.y),
-      direction: lp.direction || "down",
-    };
-  }
-  return window.__playerPos || null;
-}
-
-export function autoSolveChallenge(challenge: string): boolean {
-  log("ACTION", "autoSolveChallenge called");
-  const response = solveFishingChallenge(challenge);
-  if (window.__gameWS && window.__gameWS.readyState === 1) {
-    const msg = "42" + JSON.stringify(["getFishingResult", { result: "success", response }]);
-    log("ACTION", "Sending auto-solve via WS");
-    window.__gameWS.send(msg);
-    return true;
-  }
-  log("ACTION", "autoSolve FAILED: WS not ready");
-  return false;
-}
-
-export function forceEndMinigame(): boolean {
-  log("ACTION", "forceEndMinigame called");
-  try {
-    const app = window.__gameApp;
-    if (app && app.localPlayer) {
-      const lp = app.localPlayer;
-      if (lp.fishingMinigame) {
-        log("ACTION", "Found fishingMinigame, destroying...");
-        if (lp.fishingMinigame.destroy) lp.fishingMinigame.destroy();
-        lp.fishingMinigame = null;
-        return true;
-      }
-      if (lp.minigame) {
-        log("ACTION", "Found minigame, destroying...");
-        if (lp.minigame.destroy) lp.minigame.destroy();
-        lp.minigame = null;
-        return true;
-      }
-      log("ACTION", "No minigame found on localPlayer");
-    } else {
-      log("ACTION", "No gameApp or localPlayer");
-    }
-  } catch (e) {
-    log("ACTION", "forceEndMinigame error: " + (e as Error).message);
-  }
-  return false;
-}
-
-export function getCurrentMap(): string {
-  const app = window.__gameApp;
-  if (app && app.currentScene && app.currentScene.name) {
-    return app.currentScene.name;
-  }
-  return "unknown";
 }
 
 // Webpack module IDs for scene definitions (same as game's Fast Travel)
@@ -234,7 +141,7 @@ export function doInterMapTP(
   dir: string,
   targetMap?: string,
 ): { success: boolean; message: string } {
-  const currentMap = getCurrentMap();
+  const currentMap = window.__gameApp?.currentScene?.name || "unknown";
 
   if (!targetMap || targetMap === "unknown" || targetMap === currentMap) {
     const ok = doTP(x, y, dir);
@@ -293,9 +200,4 @@ export function doInterMapTP(
     success: false,
     message: 'Map "' + targetMap + '" not available.',
   };
-}
-
-export function setupPlayerActions(): void {
-  window.__autoSolveChallenge = autoSolveChallenge;
-  window.__forceEndMinigame = forceEndMinigame;
 }

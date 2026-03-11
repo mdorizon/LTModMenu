@@ -1,9 +1,9 @@
-import { wsSend } from "../../game/player-actions";
-import { log } from "../../utils/logger";
+import { wsSend } from "../../core/game";
+import { log } from "../../core/logger";
 
 let fishingCleanupInterval: ReturnType<typeof setInterval> | null = null;
 
-function cleanupFishingRod(): void {
+export function cleanupFishingRod(): void {
   const app = window.__gameApp;
   if (app?.localPlayer?.character?.removeFishingRod) {
     app.localPlayer.character.removeFishingRod();
@@ -61,13 +61,12 @@ export function bindForceFishing(): void {
         }
         watchForUnsit();
 
-        document.getElementById("lt-act-status")!.textContent =
-          "Fishing forced";
-        document.getElementById("lt-act-status")!.style.color = "#5a9af0";
+        const status = document.getElementById("lt-fish-status");
+        if (status) {
+          status.textContent = "Fishing forced";
+          status.style.color = "#5a9af0";
+        }
       }, 500);
     }
   };
 }
-
-/** Clean up fishing rod sprite (call before unsit) */
-export { cleanupFishingRod };

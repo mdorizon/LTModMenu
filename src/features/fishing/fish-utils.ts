@@ -1,4 +1,4 @@
-import { FISH_DATA } from "../data/fish-database";
+import { FISH_DATA } from "./data/fish-database";
 
 export function calculateGold(name: string, weight: number, isShiny: boolean): number {
   const info = FISH_DATA[name.toLowerCase()];
