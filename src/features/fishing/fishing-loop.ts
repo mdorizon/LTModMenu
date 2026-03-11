@@ -1,7 +1,7 @@
 import { calculateGold, getRarity } from "./fish-utils";
-import { gameClick } from "../../core/game";
-import { saveData } from "../../core/storage";
-import { log } from "../../core/logger";
+import { gameClick } from "@core/game";
+import { saveData } from "@core/storage";
+import { log } from "@core/logger";
 
 let fishingLoopRunning = false;
 

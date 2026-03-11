@@ -1,5 +1,5 @@
-import { cleanupFishingRod } from "../fishing/force-fishing";
-import { log } from "../../core/logger";
+import { cleanupFishingRod } from "@features/fishing/force-fishing";
+import { log } from "@core/logger";
 
 let sitting = false;
 

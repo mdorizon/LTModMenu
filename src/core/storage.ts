@@ -1,4 +1,4 @@
-import type { FishStats } from "../features/fishing/types/fish.d";
+import type { FishStats } from "@features/fishing/types/fish.d";
 import type { Waypoint } from "./types/player";
 import { log } from "./logger";
 

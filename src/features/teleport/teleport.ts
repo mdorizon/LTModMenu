@@ -1,6 +1,6 @@
-import { wsSend } from "../../core/game";
-import type { GameScene } from "../../core/types/global";
-import { log } from "../../core/logger";
+import { wsSend } from "@core/game";
+import type { GameScene } from "@core/types/global";
+import { log } from "@core/logger";
 
 export function doTP(x: number, y: number, dir: string): boolean {
   log("TP", "doTP called: " + x + ", " + y + ", " + dir);

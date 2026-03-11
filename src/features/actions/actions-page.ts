@@ -1,4 +1,4 @@
-import { mkHeader, bindNav, type RenderFn } from "../../ui/components";
+import { mkHeader, bindNav, type RenderFn } from "@ui/components";
 import { toggleSit, isSitting } from "./sit";
 
 export function renderActions(

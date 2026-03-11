@@ -1,8 +1,8 @@
-import { mkHeader, bindNav, type RenderFn } from "../../ui/components";
+import { mkHeader, bindNav, type RenderFn } from "@ui/components";
 import { fishingLoop, isFishingLoopRunning, updateHUD } from "./fishing-loop";
 import { renderForceFishing, bindForceFishing } from "./force-fishing";
-import { saveData } from "../../core/storage";
-import { log } from "../../core/logger";
+import { saveData } from "@core/storage";
+import { log } from "@core/logger";
 
 export function renderFish(hud: HTMLElement, renderMainFn: RenderFn, pages: Record<string, RenderFn>): void {
   hud.innerHTML =

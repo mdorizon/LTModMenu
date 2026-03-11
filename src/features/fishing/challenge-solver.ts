@@ -1,4 +1,4 @@
-import { log } from "../../core/logger";
+import { log } from "@core/logger";
 
 export function solveFishingChallenge(e: string): string {
   log("CHALLENGE", "Solving challenge, length: " + e.length);

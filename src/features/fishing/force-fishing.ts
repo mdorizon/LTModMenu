@@ -1,5 +1,5 @@
-import { wsSend } from "../../core/game";
-import { log } from "../../core/logger";
+import { wsSend } from "@core/game";
+import { log } from "@core/logger";
 
 let fishingCleanupInterval: ReturnType<typeof setInterval> | null = null;
 

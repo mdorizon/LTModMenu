@@ -10,7 +10,13 @@
     "rootDir": "./src",
     "declaration": false,
     "lib": ["ES2017", "DOM", "DOM.Iterable"],
-    "types": []
+    "types": [],
+    "baseUrl": "./src",
+    "paths": {
+      "@core/*": ["core/*"],
+      "@features/*": ["features/*"],
+      "@ui/*": ["ui/*"]
+    }
   },
   "include": ["src/**/*.ts"]
 }

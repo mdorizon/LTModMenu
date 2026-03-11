@@ -1,5 +1,5 @@
 import { SITE_VARS, DEFAULT_COLORS, darken } from "./theme-database";
-import { log } from "../core/logger";
+import { log } from "@core/logger";
 
 let lastApplied = "";
 

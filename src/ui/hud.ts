@@ -1,14 +1,14 @@
 import { CSS } from "./styles";
 import type { RenderFn } from "./components";
 import { renderMain } from "./main-page";
-import { renderPOI } from "../features/teleport/poi-page";
-import { renderTP } from "../features/teleport/tp-page";
-import { renderActions } from "../features/actions/actions-page";
-import { renderFish } from "../features/fishing/fish-page";
-import { startAutoSave } from "../core/storage";
-import { initSceneCache } from "../features/teleport/teleport";
+import { renderPOI } from "@features/teleport/poi-page";
+import { renderTP } from "@features/teleport/tp-page";
+import { renderActions } from "@features/actions/actions-page";
+import { renderFish } from "@features/fishing/fish-page";
+import { startAutoSave } from "@core/storage";
+import { initSceneCache } from "@features/teleport/teleport";
 import { initThemeSync } from "./theme";
-import { log } from "../core/logger";
+import { log } from "@core/logger";
 
 export function initHUD(): void {
   log("HUD", "initHUD() called");

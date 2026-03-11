@@ -1,4 +1,4 @@
-import { isWsAllEnabled, setWsAllEnabled } from "../core/logger";
+import { isWsAllEnabled, setWsAllEnabled } from "@core/logger";
 
 export function renderDevTools(container: HTMLElement): void {
   if (!__DEV__) return;

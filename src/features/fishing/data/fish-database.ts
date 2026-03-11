@@ -1,4 +1,4 @@
-import { log } from "../../../core/logger";
+import { log } from "@core/logger";
 
 export interface FishInfo {
   rarity: string;

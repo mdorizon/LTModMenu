@@ -1,4 +1,4 @@
-import { mkHeader, mkItem, bindNav, type RenderFn } from "../../ui/components";
+import { mkHeader, mkItem, bindNav, type RenderFn } from "@ui/components";
 import { doInterMapTP } from "./teleport";
 import { POI_DATA } from "./data/poi-database";
 
