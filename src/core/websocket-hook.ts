@@ -1,6 +1,6 @@
 // Side-effect module: replaces window.WebSocket to intercept all connections
 
-import { log, logWsAll } from "../utils/logger";
+import { log, logWsAll } from "./logger";
 
 log("WS", "Setting up WebSocket hook...");
 const OrigWS = window.WebSocket;

@@ -1,11 +1,12 @@
-import { mkHeader, bindNav, type RenderFn } from "../components";
-import { fishingLoop, isFishingLoopRunning, updateHUD } from "../../bot/fishing-loop";
-import { saveData } from "../../storage/storage";
-import { log } from "../../utils/logger";
+import { mkHeader, bindNav, type RenderFn } from "@ui/components";
+import { fishingLoop, isFishingLoopRunning, updateHUD } from "../fishing-loop";
+import { renderForceFishing, bindForceFishing } from "../force-fishing";
+import { saveData } from "@core/storage";
+import { log } from "@core/logger";
 
-export function renderFish(hud: HTMLElement, renderMainFn: RenderFn, pages: Record<string, RenderFn>): void {
+export function renderFishing(hud: HTMLElement, renderMainFn: RenderFn, pages: Record<string, RenderFn>): void {
   hud.innerHTML =
-    mkHeader("Auto Fishing", true) +
+    mkHeader("Fishing", true) +
     '<div class="lt-body" style="padding:4px 0;">' +
     '<div class="lt-stat-row" style="font-size:20px;font-weight:700;padding:8px 14px;color:#e0d8f0;">' +
     '<span>Total Caught</span><span id="lt-total">0</span></div>' +
@@ -25,6 +26,9 @@ export function renderFish(hud: HTMLElement, renderMainFn: RenderFn, pages: Reco
     (window.__botPaused ? "START" : "STOP") +
     '</button>' +
     '<button class="lt-action lt-danger" id="lt-reset">Reset Stats</button>' +
+    '<div class="lt-sep"></div>' +
+    renderForceFishing() +
+    '<div class="lt-status" id="lt-fish-status"></div>' +
     "</div>";
   bindNav(renderMainFn, pages);
 
@@ -34,7 +38,7 @@ export function renderFish(hud: HTMLElement, renderMainFn: RenderFn, pages: Reco
     if (!window.__botPaused && !isFishingLoopRunning()) {
       fishingLoop();
     }
-    renderFish(hud, renderMainFn, pages);
+    renderFishing(hud, renderMainFn, pages);
   };
 
   document.getElementById("lt-reset")!.onclick = () => {
@@ -72,9 +76,11 @@ export function renderFish(hud: HTMLElement, renderMainFn: RenderFn, pages: Reco
       };
       saveData("fishStats", window.__fishStats);
       log("UI", "Stats reset");
-      renderFish(hud, renderMainFn, pages);
+      renderFishing(hud, renderMainFn, pages);
     };
   };
+
+  bindForceFishing();
 
   if (window.__fishStats) updateHUD();
 }

@@ -1,14 +1,14 @@
 import { CSS } from "./styles";
 import type { RenderFn } from "./components";
-import { renderMain } from "./pages/main-page";
-import { renderPOI } from "./pages/poi-page";
-import { renderTP } from "./pages/tp-page";
-import { renderActions } from "./pages/actions-page";
-import { renderFish } from "./pages/fish-page";
-import { startAutoSave } from "../storage/storage";
-import { initSceneCache } from "../game/player-actions";
+import { renderMain } from "./main-view";
+import { renderPOI } from "@features/teleport/ui/poi-view";
+import { renderWaypoints } from "@features/teleport/ui/waypoints-view";
+import { renderActions } from "@features/actions/ui/actions-view";
+import { renderFishing } from "@features/fishing/ui/fishing-view";
+import { startAutoSave } from "@core/storage";
+import { initSceneCache } from "@features/teleport/teleport";
 import { initThemeSync } from "./theme";
-import { log } from "../utils/logger";
+import { log } from "@core/logger";
 
 export function initHUD(): void {
   log("HUD", "initHUD() called");
@@ -42,9 +42,9 @@ export function initHUD(): void {
 
   const pages: Record<string, RenderFn> = {
     poi: () => renderPOI(hud, renderMainFn, pages),
-    tp: () => renderTP(hud, renderMainFn, pages),
+    tp: () => renderWaypoints(hud, renderMainFn, pages),
     actions: () => renderActions(hud, renderMainFn, pages),
-    fish: () => renderFish(hud, renderMainFn, pages),
+    fish: () => renderFishing(hud, renderMainFn, pages),
   };
 
   // ── Drag ──
@@ -97,7 +97,6 @@ export function initHUD(): void {
     retryCount++;
     if (window.__gameApp) {
       log("HUD", "gameApp ready! (after " + retryCount + " checks)");
-      // Delay scene cache init to let the game finish loading scenes & interactables
       setTimeout(() => initSceneCache(), 5000);
       clearInterval(retryInterval);
       return;
@@ -136,7 +135,6 @@ export function initHUD(): void {
     items[kbIndex].scrollIntoView({ block: "nearest" });
   }
 
-  // Reset keyboard focus when page content changes
   let restoreIndex = -1;
   const observer2 = new MutationObserver(() => {
     if (restoreIndex >= 0) {
@@ -163,7 +161,6 @@ export function initHUD(): void {
       return;
     }
 
-    // Other shortcuts only work when HUD is visible
     if (hud.style.display === "none") return;
 
     switch (e.key) {

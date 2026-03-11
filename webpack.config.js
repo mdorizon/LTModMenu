@@ -66,6 +66,11 @@ module.exports = (env, argv) => {
     },
     resolve: {
       extensions: [".ts", ".js"],
+      alias: {
+        "@core": path.resolve(__dirname, "src/core"),
+        "@features": path.resolve(__dirname, "src/features"),
+        "@ui": path.resolve(__dirname, "src/ui"),
+      },
     },
     plugins: [
       new webpack.DefinePlugin({
