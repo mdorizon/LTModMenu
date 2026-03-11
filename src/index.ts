@@ -4,10 +4,12 @@
 //  must be installed before the game loads.
 // ══════════════════════════════════════════════
 
-console.log("[LTModMenu] >>> Script executing in PAGE context <<<");
-console.log("[LTModMenu] document.readyState:", document.readyState);
-console.log("[LTModMenu] window.WebSocket exists:", typeof window.WebSocket);
-console.log("[LTModMenu] window.location:", window.location.href);
+import { log } from "./utils/logger";
+
+log("INIT", ">>> Script executing in PAGE context <<<");
+log("INIT", "document.readyState: " + document.readyState);
+log("INIT", "window.WebSocket exists: " + typeof window.WebSocket);
+log("INIT", "window.location: " + window.location.href);
 
 // 1. Initialize global state (load persisted data)
 import { initGlobalState } from "./storage/storage";
@@ -33,24 +35,24 @@ setupPlayerActions();
 // 7. Init HUD when DOM is ready
 import { tryInit } from "./ui/hud";
 
-console.log("[LTModMenu] Setting up init, readyState:", document.readyState);
+log("INIT", "Setting up init, readyState: " + document.readyState);
 
 if (document.readyState === "complete" || document.readyState === "interactive") {
-  console.log("[LTModMenu] Page already loaded/interactive, init now");
+  log("INIT", "Page already loaded/interactive, init now");
   tryInit();
 } else {
-  console.log("[LTModMenu] Page still loading, adding DOMContentLoaded listener");
+  log("INIT", "Page still loading, adding DOMContentLoaded listener");
   document.addEventListener("DOMContentLoaded", () => {
-    console.log("[LTModMenu] DOMContentLoaded fired");
+    log("INIT", "DOMContentLoaded fired");
     tryInit();
   });
   window.addEventListener("load", () => {
-    console.log("[LTModMenu] window.load fired");
+    log("INIT", "window.load fired");
     if (!document.getElementById("lt-hud")) {
-      console.log("[LTModMenu] HUD not found on window.load, forcing init");
+      log("INIT", "HUD not found on window.load, forcing init");
       tryInit();
     }
   });
 }
 
-console.log("[LTModMenu] Init setup complete, waiting for page...");
+log("INIT", "Init setup complete, waiting for page...");

@@ -1,3 +1,5 @@
+import { log } from "../utils/logger";
+
 export interface FishInfo {
   rarity: string;
   minWeight: number;
@@ -93,4 +95,4 @@ export const FISH_DATA: Record<string, FishInfo> = {
   narwhal: { rarity: "christmas", minWeight: 800, maxWeight: 3500, baseGold: 250 },
 };
 
-console.log("[LTModMenu] Fish database loaded:", Object.keys(FISH_DATA).length, "fish");
+log("DATA", "Fish database loaded: " + Object.keys(FISH_DATA).length + " fish");

@@ -39,30 +39,39 @@ ${code}
   }
 }
 
-module.exports = {
-  entry: "./src/index.ts",
-  output: {
-    filename: "ltmodmenu.user.js",
-    path: path.resolve(__dirname, "dist"),
-    iife: true,
-    uniqueName: "ltmodmenu",
-  },
-  mode: "production",
-  optimization: {
-    minimize: false,
-    moduleIds: "named",
-  },
-  module: {
-    rules: [
-      {
-        test: /\.ts$/,
-        use: "ts-loader",
-        exclude: /node_modules/,
-      },
+module.exports = (env, argv) => {
+  const isDev = argv.mode === "development";
+
+  return {
+    entry: "./src/index.ts",
+    output: {
+      filename: "ltmodmenu.user.js",
+      path: path.resolve(__dirname, "dist"),
+      iife: true,
+      uniqueName: "ltmodmenu",
+    },
+    mode: argv.mode || "production",
+    optimization: {
+      minimize: false,
+      moduleIds: "named",
+    },
+    module: {
+      rules: [
+        {
+          test: /\.ts$/,
+          use: "ts-loader",
+          exclude: /node_modules/,
+        },
+      ],
+    },
+    resolve: {
+      extensions: [".ts", ".js"],
+    },
+    plugins: [
+      new webpack.DefinePlugin({
+        __DEV__: JSON.stringify(isDev),
+      }),
+      new PrependBannerPlugin(),
     ],
-  },
-  resolve: {
-    extensions: [".ts", ".js"],
-  },
-  plugins: [new PrependBannerPlugin()],
+  };
 };

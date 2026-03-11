@@ -1,6 +1,7 @@
 import { mkHeader, bindNav, type RenderFn } from "../components";
 import { getPos, getCurrentMap, doInterMapTP } from "../../game/player-actions";
 import { saveData } from "../../storage/storage";
+import { log } from "../../utils/logger";
 
 export function renderTP(
   hud: HTMLElement,
@@ -73,7 +74,7 @@ export function renderTP(
         map: getCurrentMap(),
       });
       saveData("waypoints", window.__waypoints);
-      console.log("[LTModMenu] Waypoint saved:", name, pos.x, pos.y);
+      log("UI", "Waypoint saved: " + name + " " + pos.x + ", " + pos.y);
       renderTP(hud, renderMainFn, pages);
     } else {
       st.textContent = "Error: position unknown";

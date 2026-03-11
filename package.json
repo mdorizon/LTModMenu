@@ -5,14 +5,16 @@
   "scripts": {
     "build": "webpack --mode production",
     "watch": "webpack --watch --mode development",
+    "dev": "concurrently \"webpack --watch --mode development\" \"bun scripts/log-server.ts\"",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
-    "webpack": "^5.90.0",
-    "webpack-cli": "^5.1.0",
+    "@types/node": "^20.0.0",
+    "concurrently": "^9.2.1",
     "ts-loader": "^9.5.0",
     "ts-node": "^10.9.0",
-    "@types/node": "^20.0.0"
+    "typescript": "^5.4.0",
+    "webpack": "^5.90.0",
+    "webpack-cli": "^5.1.0"
   }
 }

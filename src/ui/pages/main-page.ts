@@ -5,6 +5,7 @@ import {
   bindNav,
   type RenderFn,
 } from "../components";
+import { renderDevTools } from "../components/dev-tools";
 
 export function renderMain(
   hud: HTMLElement,
@@ -19,4 +20,5 @@ export function renderMain(
     mkItem("lt-go-fish", "Auto Fishing") +
     "</div>";
   bindNav(() => renderMain(hud, pages), pages);
+  renderDevTools(hud);
 }

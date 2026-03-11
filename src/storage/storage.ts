@@ -1,14 +1,15 @@
 import type { FishStats } from "../types/fish";
 import type { Waypoint } from "../types/player";
+import { log } from "../utils/logger";
 
 const STORAGE_PREFIX = "ltmod_";
 
 export function saveData(key: string, value: unknown): void {
   try {
     localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value));
-    console.log("[LTModMenu] Saved to localStorage:", key);
+    log("STORAGE", "Saved: " + key);
   } catch (e) {
-    console.log("[LTModMenu] localStorage save error:", (e as Error).message);
+    log("STORAGE", "Save error: " + (e as Error).message);
   }
 }
 
@@ -16,14 +17,14 @@ export function loadData<T>(key: string, defaultValue: T): T {
   try {
     const raw = localStorage.getItem(STORAGE_PREFIX + key);
     if (raw === null) {
-      console.log("[LTModMenu] No saved data for:", key, "- using default");
+      log("STORAGE", "No saved data for: " + key + " - using default");
       return defaultValue;
     }
     const parsed = JSON.parse(raw) as T;
-    console.log("[LTModMenu] Loaded from localStorage:", key);
+    log("STORAGE", "Loaded: " + key);
     return parsed;
   } catch (e) {
-    console.log("[LTModMenu] localStorage load error:", (e as Error).message);
+    log("STORAGE", "Load error: " + (e as Error).message);
     return defaultValue;
   }
 }
@@ -32,9 +33,9 @@ export function startAutoSave(): void {
   setInterval(() => {
     saveData("waypoints", window.__waypoints);
     saveData("fishStats", window.__fishStats);
-    console.log("[LTModMenu] Auto-save done");
+    log("STORAGE", "Auto-save done");
   }, 30000);
-  console.log("[LTModMenu] Auto-save started (every 30s)");
+  log("STORAGE", "Auto-save started (every 30s)");
 }
 
 export function initGlobalState(): void {
@@ -44,6 +45,7 @@ export function initGlobalState(): void {
   window.__blockFishingFail = false;
   window.__playerPos = null;
   window.__gameApp = null;
+  window.__localPlayerId = null;
   window.__botPaused = true;
   window.__sceneCache = new Map();
 
@@ -62,9 +64,7 @@ export function initGlobalState(): void {
     last_fish: "",
   });
 
-  console.log("[LTModMenu] Global variables initialized");
-  console.log("[LTModMenu] Loaded waypoints:", window.__waypoints.length);
-  console.log(
-    "[LTModMenu] Loaded stats: total=" + window.__fishStats.total + " gold=" + window.__fishStats.gold,
-  );
+  log("STORAGE", "Global variables initialized");
+  log("STORAGE", "Loaded waypoints: " + window.__waypoints.length);
+  log("STORAGE", "Loaded stats: total=" + window.__fishStats.total + " gold=" + window.__fishStats.gold);
 }
