@@ -2,6 +2,58 @@
 
 import { log } from "./logger";
 
+function extractBurrowTemplates(): void {
+  try {
+    const chunks = (self as any).webpackChunk_N_E;
+    if (!chunks) return;
+    if (!window.__sceneCache) window.__sceneCache = new Map();
+
+    for (const chunk of chunks) {
+      const fn = chunk[1]?.["20493"];
+      if (!fn) continue;
+
+      const src = fn.toString();
+      const idx = src.indexOf("ik={");
+      if (idx === -1) continue;
+
+      let depth = 0;
+      let end = idx;
+      for (let i = idx; i < src.length; i++) {
+        if (src[i] === "{") depth++;
+        if (src[i] === "}") {
+          depth--;
+          if (depth === 0) { end = i + 1; break; }
+        }
+      }
+
+      let ikStr = src.substring(idx + 3, end);
+      // Replace variable references (e.g. ta.mainScene, th, iT) with null
+      ikStr = ikStr.replace(/:([a-zA-Z_]\w*(?:\.\w+)?)\s*([,}])/g, (_m: string, val: string, sep: string) => {
+        if (val === "true" || val === "false" || val === "null") return ":" + val + sep;
+        return ":null" + sep;
+      });
+      ikStr = ikStr.replace(/!1/g, "false").replace(/!0/g, "true");
+
+      try {
+        const ikObj = new Function("return " + ikStr)();
+        let count = 0;
+        for (const [name, scene] of Object.entries(ikObj)) {
+          if (scene && typeof scene === "object" && (scene as any).name && (scene as any).fastTravelSpawnPosition) {
+            window.__sceneCache.set(name, scene as any);
+            count++;
+          }
+        }
+        log("SCENE", "Extracted " + count + " burrow templates from game source");
+      } catch (e: any) {
+        log("SCENE", "Failed to parse ik: " + e.message);
+      }
+      break;
+    }
+  } catch (_e) {
+    // ignore
+  }
+}
+
 function inspectLocalPlayerForId(gameApp: any): void {
   try {
     const lp = gameApp.localPlayer;
@@ -77,6 +129,22 @@ log(
                 if (appModule && appModule.App) {
                   const AppClass = appModule.App;
                   log("WEBPACK", "AppClass found, _instance: " + typeof AppClass._instance);
+
+                  // Hook loadScene on prototype to capture scene templates
+                  const origLoadScene = AppClass.prototype.loadScene;
+                  if (origLoadScene && !AppClass.prototype.__ltLoadSceneHooked) {
+                    AppClass.prototype.__ltLoadSceneHooked = true;
+                    AppClass.prototype.loadScene = function (opts: any) {
+                      if (opts?.scene?.name) {
+                        if (!window.__sceneCache) window.__sceneCache = new Map();
+                        window.__sceneCache.set(opts.scene.name, opts.scene);
+                        log("SCENE", "Captured via loadScene hook: " + opts.scene.name);
+                      }
+                      return origLoadScene.call(this, opts);
+                    };
+                    log("WEBPACK", "loadScene prototype hook installed");
+                  }
+
                   let _real = AppClass._instance;
                   Object.defineProperty(AppClass, "_instance", {
                     get() {
@@ -93,6 +161,7 @@ log(
                         window.__gameApp = v;
                         log("WEBPACK", "gameApp CAPTURED!");
                         inspectLocalPlayerForId(v);
+                        extractBurrowTemplates();
                       }
                     },
                     configurable: true,
@@ -101,6 +170,7 @@ log(
                     window.__gameApp = _real;
                     log("WEBPACK", "gameApp captured immediately (already instantiated)");
                     inspectLocalPlayerForId(_real);
+                    extractBurrowTemplates();
                   } else {
                     log("WEBPACK", "gameApp not yet instantiated, waiting for setter...");
                   }
@@ -117,11 +187,27 @@ log(
                       const AppClass = appModule.App;
 
                       // Direct polling: check _instance right now
+                      // Hook loadScene on prototype (once)
+                      const origLoadScene = AppClass.prototype.loadScene;
+                      if (origLoadScene && !AppClass.prototype.__ltLoadSceneHooked) {
+                        AppClass.prototype.__ltLoadSceneHooked = true;
+                        AppClass.prototype.loadScene = function (opts: any) {
+                          if (opts?.scene?.name) {
+                            if (!window.__sceneCache) window.__sceneCache = new Map();
+                            window.__sceneCache.set(opts.scene.name, opts.scene);
+                            log("SCENE", "Captured via loadScene hook: " + opts.scene.name);
+                          }
+                          return origLoadScene.call(this, opts);
+                        };
+                        log("WEBPACK", "loadScene prototype hook installed (retry path)");
+                      }
+
                       const inst = AppClass._instance;
                       if (inst && inst.localPlayer !== undefined) {
                         window.__gameApp = inst;
                         log("WEBPACK", "gameApp captured via retry (polling)");
                         inspectLocalPlayerForId(inst);
+                        extractBurrowTemplates();
                         return true;
                       }
 
@@ -139,6 +225,7 @@ log(
                               window.__gameApp = v;
                               log("WEBPACK", "gameApp CAPTURED via setter!");
                               inspectLocalPlayerForId(v);
+                              extractBurrowTemplates();
                             }
                           },
                           configurable: true,
@@ -172,4 +259,4 @@ log(
   log("WEBPACK", "webpackChunk.push hooked");
 })();
 
-export {};
+export { extractBurrowTemplates };

@@ -1,6 +1,7 @@
 import { wsSend } from "@core/game";
 import type { GameScene } from "@core/types/global";
 import { log } from "@core/logger";
+import { extractBurrowTemplates } from "@core/webpack-spy";
 
 export function doTP(x: number, y: number, dir: string): boolean {
   log("TP", "doTP called: " + x + ", " + y + ", " + dir);
@@ -81,6 +82,8 @@ export function initSceneCache(): void {
       /* ignore */
     }
   }
+
+  extractBurrowTemplates();
 
   log("SCENE", "Scene cache initialized: " + Array.from(window.__sceneCache.keys()).join(", "));
 }
