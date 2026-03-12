@@ -23,7 +23,7 @@ function applySpeed(): void {
     origSpeed = lp.speed;
   }
 
-  lp.speed = origSpeed * multiplier;
+  lp.speed = origSpeed! * multiplier;
 }
 
 export function setSpeedMultiplier(value: number): { multiplier: number; error?: string } {
