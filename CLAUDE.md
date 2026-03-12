@@ -141,7 +141,7 @@ L'ordre est critique — webpack spy et WS hook doivent être installés avant q
 - `window.__gameApp.players` : Record<string, OtherPlayer> — joueurs présents sur la map courante (positions live, direction, isBot, currentSeatId)
 - `window.__playerProfiles` : Map<string, PlayerProfile> — displayName/username, alimenté par les events WS `initOtherPlayers`, `playerJoinedRoom`, nettoyé par `playerDisconnected`/`playerLeftRoom`
 - `localPlayer` est séparé de `players`, accessible via `gameApp.localPlayer`
-- Les API REST (`/api/getFriends`, `/api/getMapData`) retournent 401 depuis le client (auth Supabase server-side) — pas d'accès cross-map aux joueurs depuis le userscript
+- Les API REST (`/api/getFriends`, `/api/getMapData`) retournent 401 si appelees sans auth. MAIS le JWT est capturable via `useUserData.getState().accessToken` (store Zustand, module 92764) ou via le `40{}` auth dans le WS hook (`window.__wsAuthToken`). Avec le Bearer token, toutes les API sont accessibles (voir `docs/game-analysis/game-changers.md` section 3).
 
 ### Documentation reverse-engineered
 
@@ -155,6 +155,19 @@ Docs techniques pour l'IA sur les mecanismes internes du jeu. A LIRE avant de to
 | Scenes (maps, cache, loadScene, TP) | `src/features/teleport/docs/scene-internals.md` | Toute modif teleport/scenes/maps |
 | Protocol WS (Socket.IO, events, auth, cross-map) | `src/core/docs/ws-protocol-internals.md` | Toute modif websocket-hook, ajout d'events, debug WS |
 | Lobby switch (mecanisme, anti-spam, cross-lobby TP) | `src/core/docs/lobby-switch-internals.md` | Toute modif switchLobby, cross-lobby, transition overlay |
+| **Game-changers (exploits non implementes)** | `src/core/docs/game-changers.md` | Nouvelle feature, refacto webpack-spy, exploration de possibilites |
+
+### Analyses des fichiers du jeu
+
+Les chunks webpack du client ont ete analyses et les resumes sont dans `gameFiles-analysis/`. Fichiers `-skip` = libs tierces non exploitables. Les 3 fichiers exploitables :
+
+| Chunk | Contenu | Fichier analyse |
+|-------|---------|-----------------|
+| `493-*.js` | **Game engine** : App singleton, Player, FishingManager, scenes, collisions, PixiJS | `gameFiles-analysis/493-*-analysis.md` |
+| `5677-*.js` | **Stores & logique** : Zustand stores, fishing solver, HTTP client, chat commands, shop, focus | `gameFiles-analysis/5677-*-analysis.md` |
+| `page-*.js` | **Page principale** : auth, init joueur, UI React, missions, emotes, burrows, lobbies | `gameFiles-analysis/page-*-analysis.md` |
+
+Consulter ces analyses quand on a besoin de comprendre un module webpack specifique (par ID) ou de trouver de nouvelles surfaces d'attaque.
 
 ### Mécanique de collision (reverse-engineered)
 
