@@ -97,24 +97,14 @@ log(
 
   log("WEBPACK", "Chunks array initialized, original push: " + typeof _origPush);
 
-  chunks.push = function (chunk: any) {
-    pushCount++;
-    log(
-      "WEBPACK",
-      "push #" + pushCount + ", chunk IDs: " +
-        (Array.isArray(chunk) && chunk[0] ? JSON.stringify(chunk[0]) : "unknown"),
-    );
-
-    const result = _origPush.call(chunks, chunk);
-
-    if (!hooked) {
-      hooked = true;
-      log("WEBPACK", "First real webpack push detected, injecting spy module...");
-      try {
-        chunks.push([
-          ["lt-spy"],
-          {
-            "lt-spy-mod": function (_module: any, _exports: any, require: any) {
+  function injectSpyModule(): void {
+    if (hooked) return;
+    hooked = true;
+    try {
+      chunks.push([
+        ["lt-spy"],
+        {
+          "lt-spy-mod": function (_module: any, _exports: any, require: any) {
               log("WEBPACK", "Spy module executing, require available: " + typeof require);
               window.__wpRequire = require;
               try {
@@ -253,9 +243,24 @@ log(
       } catch (e: any) {
         log("WEBPACK", "Failed to inject spy module: " + e.message);
       }
-    }
+  }
+
+  chunks.push = function (...args: any[]) {
+    pushCount++;
+    log("WEBPACK", "push #" + pushCount + " intercepted");
+    const result = _origPush.apply(chunks, args);
+    injectSpyModule();
     return result;
   };
+
+  // Fallback: if all chunks were already loaded before userscript, no push fires
+  setTimeout(() => {
+    if (!hooked) {
+      log("WEBPACK", "No push detected after 2s, injecting spy module directly...");
+      injectSpyModule();
+    }
+  }, 2000);
+
   log("WEBPACK", "webpackChunk.push hooked");
 })();
 
