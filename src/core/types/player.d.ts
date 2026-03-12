@@ -79,4 +79,7 @@ export interface GameApp {
     doNotGetMapData?: boolean;
   }) => void;
   backToMainScene?: () => void;
+  isFirstLoad?: boolean;
+  hasInitiallyJoinedRoom?: boolean;
+  loadingScene?: boolean;
 }

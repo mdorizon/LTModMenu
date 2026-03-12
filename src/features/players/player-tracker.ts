@@ -10,6 +10,7 @@ export interface TrackedPlayer {
   isBot: boolean;
   isFriend: boolean;
   activeBurrow: ActiveBurrow | null;
+  offMap?: boolean;
 }
 
 export function getTrackedPlayers(): TrackedPlayer[] {

@@ -26,6 +26,11 @@ declare global {
     __localPlayerId: string | null;
     __playerProfiles: Map<string, PlayerProfile>;
     __friendIds: Map<string, FriendPresence>;
+    __currentLobby: string | null;
+    __wsAuthToken: string | null;
+    __lobbyOverride: string | null;
+    __lobbySwitching: boolean;
+    __playerRooms: Map<string, string>;
     __ltModMenuLoaded?: boolean;
     webpackChunk_N_E: unknown[];
   }

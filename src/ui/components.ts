@@ -26,6 +26,23 @@ export function mkItemTag(id: string, label: string, tag: string): string {
   );
 }
 
+export function showTransitionOverlay(): () => void {
+  let el = document.getElementById("lt-transition");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "lt-transition";
+    document.body.appendChild(el);
+  }
+  // Force reflow then fade in
+  el.classList.remove("lt-fade-in");
+  void el.offsetWidth;
+  el.classList.add("lt-fade-in");
+
+  return () => {
+    el!.classList.remove("lt-fade-in");
+  };
+}
+
 export type RenderFn = () => void;
 
 export function bindNav(renderMain: RenderFn, pages: Record<string, RenderFn>): void {

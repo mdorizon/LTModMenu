@@ -38,15 +38,34 @@ function getAllFriends(onMapPlayers: TrackedPlayer[]): FriendEntry[] {
 
   const entries: FriendEntry[] = [];
   for (const [id, presence] of friends) {
-    const player = onMapById.get(id) || null;
+    const onMapPlayer = onMapById.get(id) || null;
     const profile = profiles.get(id);
+    const displayName = onMapPlayer?.displayName || profile?.displayName || presence.displayName || "";
+    const username = onMapPlayer?.username || profile?.username || presence.username || "";
+    if (!displayName && !username) continue;
+
+    let player: TrackedPlayer | null = onMapPlayer;
+    if (!player && presence.online) {
+      player = {
+        id,
+        displayName: displayName || username,
+        username,
+        x: 0, y: 0,
+        direction: "left",
+        isBot: false,
+        isFriend: true,
+        activeBurrow: profile?.activeBurrow?.id ? profile.activeBurrow : null,
+        offMap: true,
+      };
+    }
+
     entries.push({
       id,
-      displayName: player?.displayName || profile?.displayName || presence.displayName || id.slice(0, 10) + "...",
-      username: player?.username || profile?.username || presence.username || "",
-      online: !!player || presence.online,
+      displayName: displayName || username,
+      username,
+      online: !!onMapPlayer || presence.online,
       lobby: presence.lobby,
-      onMap: !!player,
+      onMap: !!onMapPlayer,
       player,
     });
   }
@@ -119,6 +138,12 @@ function renderFriendList(
             '<span class="lt-sub">' + f.player.x + ", " + f.player.y + "</span>" +
             "</button>";
         }
+        if (f.player) {
+          return '<button class="lt-item" id="lt-pf-' + i + '">' +
+            nameHtml(f.displayName, f.username) +
+            '<span class="lt-sub">' + f.lobby + "</span>" +
+            "</button>";
+        }
         const status = f.online ? "online @ " + f.lobby : "offline";
         return '<div class="lt-item lt-friend-away">' +
           nameHtml(f.displayName, f.username) +
@@ -128,10 +153,10 @@ function renderFriendList(
       (remaining > 0
         ? '<div class="lt-empty">+ ' + remaining + " more...</div>"
         : "")
-    : '<div class="lt-empty">' + (query ? "No match" : "No friends known") + "</div>";
+    : '<div class="lt-empty">' + (query ? "No match" : "No friends yet") + "</div>";
 
   shown.forEach((f, i) => {
-    if (f.onMap && f.player) {
+    if (f.player) {
       const el = document.getElementById("lt-pf-" + i);
       if (el) el.onclick = () => onSelect(f.player!);
     }
@@ -202,13 +227,13 @@ function openPlayerModal(
 
       grid.innerHTML = filtered.length > 0
         ? filtered.map((f, i) => {
-            const cls = f.onMap ? "lt-pm-cell" : (f.online ? "lt-pm-cell lt-pm-away" : "lt-pm-cell lt-pm-offline");
+            const cls = f.player ? "lt-pm-cell" : (f.online ? "lt-pm-cell lt-pm-away" : "lt-pm-cell lt-pm-offline");
             const status = f.onMap ? "" : ('<div class="lt-pm-sub">' + (f.online ? f.lobby : "offline") + "</div>");
             return '<button class="' + cls + '" data-pi="' + i + '"' +
-              (f.onMap ? "" : " disabled") + ">" +
+              (f.player ? "" : " disabled") + ">" +
               cellNameHtml(f.displayName, f.username) + status + "</button>";
           }).join("")
-        : '<div class="lt-empty">' + (query ? "No match" : "No friends known") + "</div>";
+        : '<div class="lt-empty">' + (query ? "No match" : "No friends yet") + "</div>";
 
       grid.querySelectorAll<HTMLButtonElement>(".lt-pm-cell:not([disabled])").forEach((btn) => {
         const idx = Number(btn.dataset.pi);
@@ -220,6 +245,12 @@ function openPlayerModal(
           };
         }
       });
+
+      const note = document.createElement("div");
+      note.className = "lt-info-note";
+      note.textContent = "Why are some friends not shown?";
+      note.onclick = showFriendsInfoModal;
+      grid.appendChild(note);
     } else {
       title.textContent = "Players (" + players.length + ")";
       bindModalTabs(friends.length);
@@ -270,6 +301,30 @@ function openPlayerModal(
 
 function escHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function showFriendsInfoModal(): void {
+  const existing = document.getElementById("lt-modal-overlay");
+  if (existing) existing.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "lt-modal-overlay";
+  overlay.innerHTML =
+    '<div id="lt-modal">' +
+    '<div id="lt-modal-title">Friends list</div>' +
+    '<div id="lt-modal-msg">' +
+    "Only friends whose names have been captured are shown. " +
+    "Names are learned when a friend is seen on the same map or connects to the lobby.<br><br>" +
+    "Log out and back in to refresh online statuses." +
+    "</div>" +
+    '<div id="lt-modal-actions">' +
+    '<button id="lt-modal-ok" style="background:#2a2a50;border-color:#4a4a7a;color:#c8c0e0;">OK</button>' +
+    "</div>" +
+    "</div>";
+
+  document.body.appendChild(overlay);
+  document.getElementById("lt-modal-ok")!.onclick = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 }
 
 let activeRefreshId: ReturnType<typeof setInterval> | null = null;
@@ -331,6 +386,11 @@ export function renderPlayers(
       if (title) title.textContent = "Friends (" + friends.length + ")";
       bindTabs(friends.length);
       renderFriendList(res, friends, query, selectPlayer);
+      const note = document.createElement("div");
+      note.className = "lt-info-note";
+      note.textContent = "Why are some friends not shown?";
+      note.onclick = showFriendsInfoModal;
+      res.appendChild(note);
     } else {
       if (title) title.textContent = "Players (" + players.length + ")";
       bindTabs(friends.length);

@@ -1,6 +1,7 @@
-import { mkHeader, bindNav, type RenderFn } from "@ui/components";
-import { doTP } from "@features/teleport/teleport";
+import { mkHeader, bindNav, showTransitionOverlay, type RenderFn } from "@ui/components";
+import { doTP, doInterMapTP } from "@features/teleport/teleport";
 import { log } from "@core/logger";
+import { getCurrentLobby, switchLobby } from "@core/game";
 import type { TrackedPlayer } from "../player-tracker";
 import {
   PRIVACY_PUBLIC,
@@ -12,6 +13,8 @@ import {
 } from "../data/burrow-database";
 
 const SEAT_OFFSET = 10;
+const SWITCH_POLL_MS = 300;
+const SWITCH_TIMEOUT_MS = 15000;
 
 function getBurrowState(player: TrackedPlayer): { canVisit: boolean; label: string } {
   const burrow = player.activeBurrow;
@@ -31,9 +34,34 @@ export function renderPlayerActions(
   const burrow = player.activeBurrow;
   const { canVisit, label: burrowLabel } = getBurrowState(player);
 
+  const isOffMap = !!player.offMap;
+  const friendPresence = window.__friendIds.get(player.id);
+  const friendLobby = friendPresence?.lobby || "";
+  const currentLobby = getCurrentLobby();
+  const isCrossLobby = isOffMap && !!friendLobby && friendLobby !== currentLobby;
+  const playerRoom = window.__playerRooms.get(player.id) || "";
+  const isSameLobbyDiffRoom = isOffMap && !isCrossLobby && !!playerRoom;
+
+  const locationLabel = isCrossLobby
+    ? friendLobby
+    : isSameLobbyDiffRoom
+      ? playerRoom.startsWith("burrow:") ? "burrow" : playerRoom
+      : isOffMap ? (friendLobby || "another map") : player.x + ", " + player.y;
   const subtitle = (player.username && player.username !== player.displayName ? "@" + player.username + " &middot; " : "") +
-    player.x + ", " + player.y +
+    locationLabel +
     (player.isFriend ? " &middot; Friend" : "");
+
+  let tpButtonHtml: string;
+  if (isCrossLobby) {
+    tpButtonHtml = '<button class="lt-action lt-primary" id="lt-tp-to-player">Switch to ' + friendLobby + "</button>";
+  } else if (isSameLobbyDiffRoom) {
+    const roomLabel = playerRoom.startsWith("burrow:") ? "burrow" : playerRoom;
+    tpButtonHtml = '<button class="lt-action lt-primary" id="lt-tp-to-player">Go to ' + roomLabel + "</button>";
+  } else if (isOffMap) {
+    tpButtonHtml = '<button class="lt-action lt-muted" disabled id="lt-tp-to-player">Player location unknown</button>';
+  } else {
+    tpButtonHtml = '<button class="lt-action lt-primary" id="lt-tp-to-player">Teleport to player</button>';
+  }
 
   hud.innerHTML =
     mkHeader(player.displayName, true) +
@@ -41,7 +69,7 @@ export function renderPlayerActions(
     '<div class="lt-player-info">' +
     '<span class="lt-sub">' + subtitle + "</span>" +
     "</div>" +
-    '<button class="lt-action lt-primary" id="lt-tp-to-player">Teleport to player</button>' +
+    tpButtonHtml +
     '<button class="lt-action' +
     (canVisit ? " lt-primary" : " lt-muted") +
     '" id="lt-visit-burrow"' +
@@ -58,6 +86,137 @@ export function renderPlayerActions(
   if (back) back.onclick = () => pages.players();
 
   document.getElementById("lt-tp-to-player")!.onclick = () => {
+    const st = document.getElementById("lt-player-status")!;
+
+    if (isCrossLobby) {
+      const ok = switchLobby(friendLobby);
+      if (!ok) {
+        st.textContent = "Error: WebSocket not ready";
+        st.style.color = "#f05050";
+        return;
+      }
+      st.textContent = "Switching to " + friendLobby + "...";
+      st.style.color = "#c8c0e0";
+      const dismissOverlay = showTransitionOverlay();
+
+      const friendId = player.id;
+      const friendName = player.displayName;
+      const start = Date.now();
+      let navigated = false;
+      let overlayDismissed = false;
+
+      const fadeOut = () => {
+        if (!overlayDismissed) { overlayDismissed = true; dismissOverlay(); }
+      };
+
+      const poll = setInterval(() => {
+        const elapsed = Date.now() - start;
+        const stEl = document.getElementById("lt-player-status");
+        if (!stEl || elapsed > SWITCH_TIMEOUT_MS) {
+          clearInterval(poll);
+          fadeOut();
+          if (stEl) {
+            stEl.textContent = elapsed > SWITCH_TIMEOUT_MS
+              ? "Joined " + friendLobby + " — couldn't locate " + friendName
+              : "";
+            stEl.style.color = "#c8c0e0";
+          }
+          return;
+        }
+
+        // Step 1: wait for lobby connection
+        if (window.__currentLobby !== friendLobby) return;
+
+        // Step 2: friend on current map? → TP directly
+        const app = window.__gameApp;
+        const live = app?.players?.[friendId];
+        if (live) {
+          clearInterval(poll);
+          const x = Math.round(live.currentPos.x);
+          const y = Math.round(live.currentPos.y);
+          const dir = live.direction || "left";
+          doTP(x, y, dir);
+          fadeOut();
+          stEl.textContent = "Teleported to " + friendName + " (" + x + ", " + y + ")";
+          stEl.style.color = "#5ad85a";
+          return;
+        }
+
+        // Step 3: know their room? → navigate there (once)
+        if (!navigated) {
+          const room = window.__playerRooms.get(friendId);
+          if (room) {
+            navigated = true;
+            fadeOut();
+            if (room.startsWith("burrow:")) {
+              const parts = room.split(":");
+              const burrowId = parts[1];
+              const subRoom = parseInt(parts[2] || "0", 10);
+              const template = player.activeBurrow?.template || "burrow-1";
+              const cached = window.__sceneCache?.get(template);
+              const scene = cached || { name: template, ...FALLBACK_SCENE };
+              const spawn = scene.fastTravelSpawnPosition || FALLBACK_SPAWN;
+              log("BURROW", "Cross-lobby follow → burrow=" + burrowId);
+              app?.loadScene?.({
+                scene,
+                burrow: { id: burrowId, subRoom },
+                position: { x: spawn.x + BURROW_SPAWN_OFFSET_X, y: spawn.y, direction: spawn.direction },
+              });
+              stEl.textContent = "Joining " + friendName + "'s burrow...";
+            } else {
+              const cached = window.__sceneCache?.get(room);
+              const spawn = cached?.fastTravelSpawnPosition || FALLBACK_SPAWN;
+              log("TP", "Cross-lobby follow → room=" + room);
+              doInterMapTP(spawn.x, spawn.y, spawn.direction, room);
+              stEl.textContent = "Navigating to " + room + "...";
+            }
+            stEl.style.color = "#c8c0e0";
+          } else if (!app?.loadingScene) {
+            fadeOut();
+            stEl.textContent = "Connected to " + friendLobby + " — locating " + friendName + "...";
+          }
+        }
+      }, SWITCH_POLL_MS);
+      return;
+    }
+
+    if (isSameLobbyDiffRoom) {
+      if (playerRoom.startsWith("burrow:")) {
+        // Burrow visit: extract burrow ID from room string "burrow:<uuid>:<subRoom>"
+        const parts = playerRoom.split(":");
+        const burrowId = parts[1];
+        const subRoom = parseInt(parts[2] || "0", 10);
+        const app = window.__gameApp;
+        if (!app?.loadScene) {
+          st.textContent = "Error: gameApp not captured";
+          st.style.color = "#f05050";
+          return;
+        }
+        const template = player.activeBurrow?.template || "burrow-1";
+        const cached = window.__sceneCache?.get(template);
+        const scene = cached || { name: template, ...FALLBACK_SCENE };
+        const spawn = scene.fastTravelSpawnPosition || FALLBACK_SPAWN;
+        log("BURROW", "Following " + player.displayName + " to burrow=" + burrowId + " room=" + playerRoom);
+        app.loadScene({
+          scene,
+          burrow: { id: burrowId, subRoom },
+          position: { x: spawn.x + BURROW_SPAWN_OFFSET_X, y: spawn.y, direction: spawn.direction },
+        });
+        st.textContent = "Joining " + player.displayName + "'s room...";
+        st.style.color = "#5ad85a";
+      } else {
+        // Regular map: use doInterMapTP with default spawn
+        const cached = window.__sceneCache?.get(playerRoom);
+        const spawn = cached?.fastTravelSpawnPosition || FALLBACK_SPAWN;
+        log("TP", "Following " + player.displayName + " to room=" + playerRoom);
+        const result = doInterMapTP(spawn.x, spawn.y, spawn.direction, playerRoom);
+        st.textContent = result.message;
+        st.style.color = result.success ? "#5ad85a" : "#f05050";
+      }
+      return;
+    }
+
+    if (player.offMap) return;
     const app = window.__gameApp;
     const live = app?.players?.[player.id];
     let x = live ? Math.round(live.currentPos.x) : player.x;
@@ -71,7 +230,6 @@ export function renderPlayerActions(
     }
 
     const ok = doTP(x, y, dir);
-    const st = document.getElementById("lt-player-status")!;
     if (ok) {
       st.textContent =
         "Teleported near " + player.displayName + " (" + x + ", " + y + ")";

@@ -120,7 +120,7 @@ function extractPlayerProfiles(eventName: string, eventData: any): void {
       emitPlayersChanged();
     }
 
-    if (eventName === "playerJoinedRoom" && eventData?.id && eventData?.profile) {
+    if ((eventName === "playerJoinedRoom" || eventName === "playerConnected") && eventData?.id && eventData?.profile) {
       const dn = eventData.profile.displayName || eventData.profile.username || "";
       const un = eventData.profile.username || "";
       profiles.set(eventData.id, {
@@ -147,7 +147,26 @@ const OrigWS = window.WebSocket;
 log("WS", "Original WebSocket: " + typeof OrigWS);
 
 (window as any).WebSocket = function (...args: any[]) {
-  const url = args[0] || "";
+  let url = args[0] || "";
+
+  // Extract current lobby from URL and apply override if set
+  let lobbySwitched = false;
+  if (typeof url === "string") {
+    const lobbyMatch = url.match(/wss:\/\/([^.]+)\.lofi\.town/);
+    if (lobbyMatch) {
+      window.__currentLobby = lobbyMatch[1];
+      if (window.__lobbyOverride && window.__lobbyOverride !== lobbyMatch[1]) {
+        const target = window.__lobbyOverride;
+        url = url.replace(/wss:\/\/[^.]+\.lofi\.town/, "wss://" + target + ".lofi.town");
+        args[0] = url;
+        log("WS", "Lobby override: " + lobbyMatch[1] + " → " + target);
+        window.__currentLobby = target;
+        window.__lobbyOverride = null;
+        lobbySwitched = true;
+      }
+    }
+  }
+
   log("WS", "new WebSocket() called, url: " + url);
 
   const ws = new (Function.prototype.bind.apply(OrigWS, [
@@ -170,6 +189,24 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
           log("WS", "SEND: " + data.substring(0, 120));
         }
 
+        // Capture JWT token from Socket.IO auth (40{"token":"..."})
+        // After lobby switch, strip pid/offset so the new server doesn't reject a resume attempt
+        if (data.startsWith("40{")) {
+          try {
+            const authPayload = JSON.parse(data.substring(2));
+            if (authPayload.token) {
+              window.__wsAuthToken = authPayload.token;
+              log("WS", "JWT token captured");
+            }
+            if (lobbySwitched && (authPayload.pid || authPayload.offset)) {
+              delete authPayload.pid;
+              delete authPayload.offset;
+              data = "40" + JSON.stringify(authPayload);
+              log("WS", "Stripped pid/offset for lobby switch");
+            }
+          } catch (_e) { /* ignore */ }
+        }
+
         // Track position
         if (data.includes("clientUpdatePosition")) {
           try {
@@ -183,6 +220,10 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
           }
         }
 
+      }
+      if (ws.readyState !== 1) {
+        log("WS", "SEND blocked: readyState=" + ws.readyState);
+        return;
       }
       return _origSend(data);
     };
@@ -245,6 +286,11 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
           ];
 
           extractFriendIds(eventName, eventData, parsed[2]);
+
+          // Track player rooms (lobby-wide — we see ALL room changes in our lobby)
+          if (eventName === "updateRoom" && eventData?.id && eventData.room !== undefined) {
+            window.__playerRooms.set(eventData.id, eventData.room);
+          }
 
           if (otherPlayerEvents.includes(eventName)) {
             extractPlayerProfiles(eventName, eventData);
@@ -330,6 +376,21 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
       log("WS", "message parse error: " + (err as Error).message);
     }
   });
+
+  // After lobby switch, reset App flags so the game's "connected" handler does a full init
+  // (instead of treating it as a reconnect and skipping scene/room setup)
+  if (lobbySwitched) {
+    ws.addEventListener("open", function onLobbyOpen() {
+      ws.removeEventListener("open", onLobbyOpen);
+      window.__lobbySwitching = false;
+      const app = window.__gameApp;
+      if (app) {
+        app.isFirstLoad = true;
+        app.hasInitiallyJoinedRoom = false;
+        log("WS", "Lobby switch: reset App flags for full re-init");
+      }
+    });
+  }
 
   return ws;
 };
