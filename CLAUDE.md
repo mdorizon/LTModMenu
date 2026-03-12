@@ -168,6 +168,17 @@ Documentation détaillée dans `src/features/actions/docs/player-physics-interna
 - `lp.speed` : vitesse de déplacement, modifiable directement. Reset au changement de map (nouveau localPlayer)
 - Au disable du noclip, TP à la position courante via `doTP()` pour éviter le pushback sous la map
 
+### Versioning & Release
+
+Source unique de verite : `package.json` → `version`. Le `banner.txt` utilise `{{version}}` remplace au build par webpack. Le README utilise un badge dynamique GitHub.
+
+Trois facons de release :
+- **Auto (labels PR)** : mettre un label `release:patch`, `release:minor` ou `release:major` sur une PR vers `main`. Au merge, le workflow `version-bump.yml` bumpe `package.json`, commit, tag, push. Le tag declenche `release.yml` (build + GitHub Release + GitHub Pages).
+- **Auto (dispatch)** : lancer le workflow "Version Bump" depuis l'onglet Actions GitHub avec le type de bump en dropdown.
+- **Manuel** : `git tag v2.3.0 && git push --tags` — declenche directement `release.yml`.
+
+Ne jamais modifier la version manuellement dans `package.json` — laisser le workflow s'en charger.
+
 ### Limitations connues
 
 - Cross-map : API REST 401, mais `updateRoom` WS event donne la room de tout joueur du meme lobby (voir `ws-protocol-internals.md`)
