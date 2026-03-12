@@ -89,10 +89,12 @@ src/
 │   │   └── docs/
 │   │       └── social-internals.md
 │   └── actions/                # Actions joueur génériques
-│       ├── ui/actions-view.ts  # Vue HUD Actions (sit, noclip, speed)
+│       ├── ui/actions-view.ts  # Vue HUD Actions (sit, noclip, speed, free camera, hitboxes)
 │       ├── sit.ts              # toggleSit state machine
 │       ├── noclip.ts           # Bypass collisions via handleCollisions passthrough
 │       ├── speed.ts            # Speed multiplier (persisté localStorage, watcher auto-reapply)
+│       ├── free-camera.ts      # Détache la caméra du joueur via GameGlobals
+│       ├── debug-gizmos.ts     # Dessine colliders/interactables/seats via PIXI.Graphics
 │       └── docs/
 │           └── player-physics-internals.md
 └── ui/                         # Shell du menu (pas de logique métier)
@@ -151,6 +153,7 @@ Docs techniques pour l'IA sur les mecanismes internes du jeu. A LIRE avant de to
 |---------|---------|------------|
 | Peche (bot, minigame, WS events) | `src/features/fishing/docs/fishing-internals.md` | Toute modif fishing |
 | Physique joueur (collision, noclip, speed) | `src/features/actions/docs/player-physics-internals.md` | Toute modif mouvement/collision |
+| Camera, hitboxes, debug gizmos, PixiJS v8 | `src/features/actions/docs/camera-debug-internals.md` | Toute modif free camera, hitbox overlay, PIXI Graphics |
 | Social (amis, burrows, profils, privacy) | `src/features/players/docs/social-internals.md` | Toute modif players/friends/burrow |
 | Scenes (maps, cache, loadScene, TP) | `src/features/teleport/docs/scene-internals.md` | Toute modif teleport/scenes/maps |
 | Protocol WS (Socket.IO, events, auth, cross-map) | `src/core/docs/ws-protocol-internals.md` | Toute modif websocket-hook, ajout d'events, debug WS |
