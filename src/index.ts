@@ -25,13 +25,17 @@ import "@features/fishing/data/fish-database";
 import { setupFishingGlobals } from "@features/fishing/challenge-solver";
 setupFishingGlobals();
 
-// 4. Hook webpack chunks (must be before game loads)
+// 4. Start speed watcher (persisted multiplier, re-applies after map change)
+import { initSpeedWatcher } from "@features/actions/speed";
+initSpeedWatcher();
+
+// 5. Hook webpack chunks (must be before game loads)
 import "@core/webpack-spy";
 
-// 5. Hook WebSocket constructor (must be before game connects)
+// 6. Hook WebSocket constructor (must be before game connects)
 import "@core/websocket-hook";
 
-// 6. Init HUD when DOM is ready
+// 7. Init HUD when DOM is ready
 import { tryInit } from "@ui/hud";
 
 log("INIT", "Setting up init, readyState: " + document.readyState);
