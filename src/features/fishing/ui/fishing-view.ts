@@ -2,6 +2,7 @@ import { mkHeader, bindNav, type RenderFn } from "@ui/components";
 import { fishingLoop, isFishingLoopRunning, stopFishingLoop, updateHUD } from "../fishing-loop";
 import { renderForceFishing, bindForceFishing } from "../force-fishing";
 import { renderFishShop, bindFishShop } from "../fish-shop";
+import { renderAutoSell, bindAutoSell } from "../auto-sell";
 import { showModal } from "@ui/modal";
 import { saveData } from "@core/storage";
 import { log } from "@core/logger";
@@ -48,6 +49,7 @@ export function renderFishing(hud: HTMLElement, renderMainFn: RenderFn, pages: R
     (window.__botPaused ? "START" : "STOP") +
     '</button>' +
     '<button class="lt-action lt-danger" id="lt-reset">Reset Stats</button>' +
+    renderAutoSell() +
     renderForceFishing() +
     renderFishShop() +
     "</div>";
@@ -91,6 +93,7 @@ export function renderFishing(hud: HTMLElement, renderMainFn: RenderFn, pages: R
   bindForceFishing();
 
   bindFishShop();
+  bindAutoSell();
 
   if (window.__fishStats) updateHUD();
   startMapWatch(hud, renderMainFn, pages);

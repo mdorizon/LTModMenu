@@ -19,6 +19,7 @@ export interface FishBiteData {
 }
 
 export interface FishResultData {
+  id?: string;
   name?: string;
   weight?: number;
   isShiny?: boolean;
