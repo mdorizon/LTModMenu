@@ -42,7 +42,6 @@ export function initGlobalState(): void {
   window.__lastFish = null;
   window.__fishBite = null;
   window.__gameWS = null;
-  window.__blockFishingFail = false;
   window.__playerPos = null;
   window.__gameApp = null;
   window.__localPlayerId = null;

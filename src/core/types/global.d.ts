@@ -1,5 +1,5 @@
 import type { FishStats, FishBiteData, FishResultData } from "./fish.d";
-import type { PlayerPos, Waypoint, GameApp } from "./player";
+import type { PlayerPos, Waypoint, GameApp, PlayerProfile } from "./player";
 
 export interface GameScene {
   name: string;
@@ -15,18 +15,16 @@ declare global {
     __gameApp: GameApp | null;
     __fishBite: FishBiteData | null;
     __lastFish: FishResultData | null;
-    __blockFishingFail: boolean;
     __playerPos: PlayerPos | null;
     __botPaused: boolean;
     __waypoints: Waypoint[];
     __fishStats: FishStats;
     __solveFishingChallenge: (challenge: string) => string;
-    __autoSolveChallenge: (challenge: string) => boolean;
-    __forceEndMinigame: () => boolean;
     __sceneCache: Map<string, GameScene>;
     __wpRequire?: (id: number) => any;
     __ltSpyRetry?: () => boolean;
     __localPlayerId: string | null;
+    __playerProfiles: Map<string, PlayerProfile>;
     __ltModMenuLoaded?: boolean;
     webpackChunk_N_E: unknown[];
   }

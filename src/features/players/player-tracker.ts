@@ -1,0 +1,32 @@
+import type { OtherPlayer, PlayerProfile } from "@core/types/player";
+
+export interface TrackedPlayer {
+  id: string;
+  displayName: string;
+  x: number;
+  y: number;
+  direction: string;
+  isBot: boolean;
+}
+
+export function getTrackedPlayers(): TrackedPlayer[] {
+  const app = window.__gameApp;
+  if (!app?.players) return [];
+
+  const profiles = window.__playerProfiles;
+
+  return Object.values(app.players as Record<string, OtherPlayer>)
+    .filter((p) => !p.isLocal && !p.isBot)
+    .map((p) => {
+      const profile: PlayerProfile | undefined = profiles.get(p.id);
+      return {
+        id: p.id,
+        displayName: profile?.displayName || p.id.slice(0, 8) + "...",
+        x: Math.round(p.currentPos.x),
+        y: Math.round(p.currentPos.y),
+        direction: p.direction,
+        isBot: p.isBot,
+      };
+    })
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+}

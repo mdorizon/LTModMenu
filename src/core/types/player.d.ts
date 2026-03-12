@@ -19,6 +19,7 @@ export interface LocalPlayer {
   oldPos?: { x: number; y: number };
   direction: string;
   currentSeatId: string;
+  sitAnimation?: string;
   fishingMinigame?: { destroy?: () => void } | null;
   minigame?: { destroy?: () => void } | null;
   character: {
@@ -33,8 +34,24 @@ export interface LocalPlayer {
 
 import type { GameScene } from "./global";
 
+export interface OtherPlayer {
+  id: string;
+  currentPos: { x: number; y: number };
+  direction: string;
+  isBot: boolean;
+  isLocal: boolean;
+  currentSeatId?: string;
+  sitAnimation?: string;
+}
+
+export interface PlayerProfile {
+  displayName: string;
+  username: string;
+}
+
 export interface GameApp {
   localPlayer: LocalPlayer;
+  players: Record<string, OtherPlayer>;
   currentCamera: {
     moveCameraToPlayer: (instant: boolean) => void;
   };

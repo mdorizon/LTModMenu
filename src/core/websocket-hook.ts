@@ -2,6 +2,41 @@
 
 import { log, logWsAll } from "./logger";
 
+if (!window.__playerProfiles) {
+  window.__playerProfiles = new Map();
+}
+
+function extractPlayerProfiles(eventName: string, eventData: any): void {
+  const profiles = window.__playerProfiles;
+  try {
+    if (eventName === "initOtherPlayers" && eventData?.playerStates) {
+      for (const ps of eventData.playerStates) {
+        if (ps.id && ps.profile) {
+          profiles.set(ps.id, {
+            displayName: ps.profile.displayName || ps.profile.username || "",
+            username: ps.profile.username || "",
+          });
+        }
+      }
+      log("WS", "Profiles loaded: " + profiles.size + " players");
+    }
+
+    if (eventName === "playerJoinedRoom" && eventData?.id && eventData?.profile) {
+      profiles.set(eventData.id, {
+        displayName: eventData.profile.displayName || eventData.profile.username || "",
+        username: eventData.profile.username || "",
+      });
+    }
+
+    if (eventName === "playerDisconnected" || eventName === "playerLeftRoom") {
+      const id = typeof eventData === "string" ? eventData : eventData?.id;
+      if (id) profiles.delete(id);
+    }
+  } catch (_e) {
+    // ignore parse errors
+  }
+}
+
 log("WS", "Setting up WebSocket hook...");
 const OrigWS = window.WebSocket;
 log("WS", "Original WebSocket: " + typeof OrigWS);
@@ -43,15 +78,6 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
           }
         }
 
-        // Block fail messages
-        if (
-          window.__blockFishingFail &&
-          data.includes("getFishingResult") &&
-          data.includes('"fail"')
-        ) {
-          log("WS", "BLOCKED fail message!");
-          return;
-        }
       }
       return _origSend(data);
     };
@@ -93,8 +119,6 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
 
           // Events that are always ours (responses to our own actions)
           const localEvents = [
-            "fishCaught",
-            "fishing-result",
             "connected",
             "fishingFrenzyUpdate",
             "focus-stats-updated",
@@ -114,6 +138,7 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
           ];
 
           if (otherPlayerEvents.includes(eventName)) {
+            extractPlayerProfiles(eventName, eventData);
             logWsAll("RECV [other:" + eventName + "]: " + data.substring(0, 200));
             return;
           }
@@ -156,14 +181,25 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
           // Log the event
           log("WS", "RECV: " + data.substring(0, 200));
 
-          // Handle specific events
+          // Handle fishing events (only for local player)
           if (eventName === "fishCaught" && eventData) {
-            log("WS", ">>> FISH CAUGHT EVENT <<<");
-            window.__fishBite = eventData;
-            log("WS", "Fish bite data: " + JSON.stringify(eventData).substring(0, 200));
+            const lp = window.__gameApp?.localPlayer;
+            if (lp && lp.currentSeatId) {
+              log("WS", ">>> FISH CAUGHT EVENT <<<");
+              window.__fishBite = eventData;
+              log("WS", "Fish bite data: " + JSON.stringify(eventData).substring(0, 200));
+            } else {
+              logWsAll("RECV [other:fishCaught]: " + data.substring(0, 200));
+              return;
+            }
           }
 
           if (eventName === "fishing-result" && eventData) {
+            const myId = window.__localPlayerId;
+            if (myId && eventData.userId && String(eventData.userId) !== myId) {
+              logWsAll("RECV [other:fishing-result]: " + data.substring(0, 200));
+              return;
+            }
             log("WS", ">>> FISHING RESULT EVENT <<<");
             window.__lastFish = eventData;
             log("WS", "Fish result: " + JSON.stringify(eventData).substring(0, 200));

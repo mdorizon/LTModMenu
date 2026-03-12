@@ -18,7 +18,10 @@ try {
 }
 
 function timestamp(): string {
-  return new Date().toISOString();
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const ms = String(d.getMilliseconds()).padStart(3, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${ms}`;
 }
 
 export function log(category: string, message: string, data?: unknown): void {

@@ -1,17 +1,27 @@
 import { mkHeader, bindNav, type RenderFn } from "@ui/components";
 import { toggleSit, isSitting } from "../sit";
+import { toggleNoclip, isNoclip } from "../noclip";
+import { getSpeedMultiplier, setSpeedMultiplier } from "../speed";
 
 export function renderActions(
   hud: HTMLElement,
   renderMainFn: RenderFn,
   pages: Record<string, RenderFn>,
 ): void {
+  const speed = getSpeedMultiplier();
   hud.innerHTML =
     mkHeader("Actions", true) +
     '<div class="lt-body">' +
     '<button class="lt-action ' + (isSitting() ? "lt-muted" : "lt-primary") + '" id="lt-sit-toggle">' +
     (isSitting() ? "Stand Up" : "Sit Down") +
     "</button>" +
+    '<button class="lt-action ' + (isNoclip() ? "lt-danger" : "lt-primary") + '" id="lt-noclip-toggle">' +
+    (isNoclip() ? "Noclip ON" : "Noclip OFF") +
+    "</button>" +
+    '<div class="lt-speed-row">' +
+    '<span class="lt-speed-label">Speed: x<span id="lt-speed-val">' + speed + '</span></span>' +
+    '<input type="range" class="lt-slider" id="lt-speed-slider" min="1" max="10" step="1" value="' + speed + '" />' +
+    "</div>" +
     "</div>" +
     '<div class="lt-status" id="lt-act-status"></div>' +
     '<div class="lt-warn">These actions are detectable by the server</div>';
@@ -36,6 +46,44 @@ export function renderActions(
       toggleBtn.className = "lt-action lt-primary";
       st.textContent = "Standing";
       st.style.color = "#6a6a9a";
+    }
+  };
+
+  document.getElementById("lt-noclip-toggle")!.onclick = () => {
+    const result = toggleNoclip();
+    const btn = document.getElementById("lt-noclip-toggle")!;
+    const st = document.getElementById("lt-act-status")!;
+    if (result.error) {
+      st.textContent = result.error;
+      st.style.color = "#f05050";
+      return;
+    }
+    if (result.enabled) {
+      btn.textContent = "Noclip ON";
+      btn.className = "lt-action lt-danger";
+      st.textContent = "Noclip enabled - walk through everything";
+      st.style.color = "#be6a6a";
+    } else {
+      btn.textContent = "Noclip OFF";
+      btn.className = "lt-action lt-primary";
+      st.textContent = "Collisions restored";
+      st.style.color = "#6a6a9a";
+    }
+  };
+
+  const slider = document.getElementById("lt-speed-slider") as HTMLInputElement;
+  const valLabel = document.getElementById("lt-speed-val")!;
+  slider.oninput = () => {
+    const val = Number(slider.value);
+    valLabel.textContent = String(val);
+    const result = setSpeedMultiplier(val);
+    const st = document.getElementById("lt-act-status")!;
+    if (result.error) {
+      st.textContent = result.error;
+      st.style.color = "#f05050";
+    } else {
+      st.textContent = "Speed x" + result.multiplier;
+      st.style.color = result.multiplier > 1 ? "#be6a6a" : "#6a6a9a";
     }
   };
 }
