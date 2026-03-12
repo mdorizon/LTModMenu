@@ -1,5 +1,5 @@
 import type { FishStats, FishBiteData, FishResultData } from "./fish.d";
-import type { PlayerPos, Waypoint, GameApp } from "./player";
+import type { PlayerPos, Waypoint, GameApp, PlayerProfile } from "./player";
 
 export interface GameScene {
   name: string;
@@ -24,6 +24,7 @@ declare global {
     __wpRequire?: (id: number) => any;
     __ltSpyRetry?: () => boolean;
     __localPlayerId: string | null;
+    __playerProfiles: Map<string, PlayerProfile>;
     __ltModMenuLoaded?: boolean;
     webpackChunk_N_E: unknown[];
   }

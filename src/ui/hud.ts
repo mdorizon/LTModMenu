@@ -5,6 +5,7 @@ import { renderPOI } from "@features/teleport/ui/poi-view";
 import { renderWaypoints } from "@features/teleport/ui/waypoints-view";
 import { renderActions } from "@features/actions/ui/actions-view";
 import { renderFishing } from "@features/fishing/ui/fishing-view";
+import { renderPlayers } from "@features/players/ui/players-view";
 import { startAutoSave } from "@core/storage";
 import { initSceneCache } from "@features/teleport/teleport";
 import { initThemeSync } from "./theme";
@@ -45,6 +46,7 @@ export function initHUD(): void {
     tp: () => renderWaypoints(hud, renderMainFn, pages),
     actions: () => renderActions(hud, renderMainFn, pages),
     fish: () => renderFishing(hud, renderMainFn, pages),
+    players: () => renderPlayers(hud, renderMainFn, pages),
   };
 
   // ── Drag ──

@@ -2,6 +2,41 @@
 
 import { log, logWsAll } from "./logger";
 
+if (!window.__playerProfiles) {
+  window.__playerProfiles = new Map();
+}
+
+function extractPlayerProfiles(eventName: string, eventData: any): void {
+  const profiles = window.__playerProfiles;
+  try {
+    if (eventName === "initOtherPlayers" && eventData?.playerStates) {
+      for (const ps of eventData.playerStates) {
+        if (ps.id && ps.profile) {
+          profiles.set(ps.id, {
+            displayName: ps.profile.displayName || ps.profile.username || "",
+            username: ps.profile.username || "",
+          });
+        }
+      }
+      log("WS", "Profiles loaded: " + profiles.size + " players");
+    }
+
+    if (eventName === "playerJoinedRoom" && eventData?.id && eventData?.profile) {
+      profiles.set(eventData.id, {
+        displayName: eventData.profile.displayName || eventData.profile.username || "",
+        username: eventData.profile.username || "",
+      });
+    }
+
+    if (eventName === "playerDisconnected" || eventName === "playerLeftRoom") {
+      const id = typeof eventData === "string" ? eventData : eventData?.id;
+      if (id) profiles.delete(id);
+    }
+  } catch (_e) {
+    // ignore parse errors
+  }
+}
+
 log("WS", "Setting up WebSocket hook...");
 const OrigWS = window.WebSocket;
 log("WS", "Original WebSocket: " + typeof OrigWS);
@@ -103,6 +138,7 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
           ];
 
           if (otherPlayerEvents.includes(eventName)) {
+            extractPlayerProfiles(eventName, eventData);
             logWsAll("RECV [other:" + eventName + "]: " + data.substring(0, 200));
             return;
           }
