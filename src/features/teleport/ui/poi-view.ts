@@ -1,5 +1,6 @@
 import { mkHeader, mkItem, bindNav, type RenderFn } from "@ui/components";
 import { doInterMapTP } from "../teleport";
+import { mkLobbyButton, bindLobbyButton } from "@features/lobbies/lobby-switch";
 import { POI_DATA } from "../data/poi-database";
 
 export function renderPOI(
@@ -18,10 +19,13 @@ export function renderPOI(
   hud.innerHTML =
     mkHeader("POIs", true) +
     '<div class="lt-body">' +
+    mkLobbyButton() +
+    '<div class="lt-sep"></div>' +
     items +
     "</div>" +
     '<div class="lt-status" id="lt-poi-status"></div>';
   bindNav(renderMainFn, pages);
+  bindLobbyButton("lt-poi-status");
 
   POI_DATA.forEach((p, i) => {
     document.getElementById("lt-poi-" + i)!.onclick = () => {
