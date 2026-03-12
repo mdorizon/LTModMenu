@@ -1,5 +1,6 @@
 import { mkHeader, bindNav, type RenderFn } from "@ui/components";
 import { toggleSit, isSitting } from "../sit";
+import { toggleNoclip, isNoclip } from "../noclip";
 
 export function renderActions(
   hud: HTMLElement,
@@ -11,6 +12,9 @@ export function renderActions(
     '<div class="lt-body">' +
     '<button class="lt-action ' + (isSitting() ? "lt-muted" : "lt-primary") + '" id="lt-sit-toggle">' +
     (isSitting() ? "Stand Up" : "Sit Down") +
+    "</button>" +
+    '<button class="lt-action ' + (isNoclip() ? "lt-danger" : "lt-primary") + '" id="lt-noclip-toggle">' +
+    (isNoclip() ? "Noclip ON" : "Noclip OFF") +
     "</button>" +
     "</div>" +
     '<div class="lt-status" id="lt-act-status"></div>' +
@@ -35,6 +39,28 @@ export function renderActions(
       toggleBtn.textContent = "Sit Down";
       toggleBtn.className = "lt-action lt-primary";
       st.textContent = "Standing";
+      st.style.color = "#6a6a9a";
+    }
+  };
+
+  document.getElementById("lt-noclip-toggle")!.onclick = () => {
+    const result = toggleNoclip();
+    const btn = document.getElementById("lt-noclip-toggle")!;
+    const st = document.getElementById("lt-act-status")!;
+    if (result.error) {
+      st.textContent = result.error;
+      st.style.color = "#f05050";
+      return;
+    }
+    if (result.enabled) {
+      btn.textContent = "Noclip ON";
+      btn.className = "lt-action lt-danger";
+      st.textContent = "Noclip enabled - walk through everything";
+      st.style.color = "#be6a6a";
+    } else {
+      btn.textContent = "Noclip OFF";
+      btn.className = "lt-action lt-primary";
+      st.textContent = "Collisions restored";
       st.style.color = "#6a6a9a";
     }
   };
