@@ -55,6 +55,8 @@ src/
 │   ├── storage.ts              # localStorage wrapper, initGlobalState, autoSave
 │   ├── webpack-spy.ts          # Hook webpackChunk pour capturer gameApp
 │   ├── websocket-hook.ts       # Intercepte WebSocket pour logger + fishing/player events
+│   ├── docs/
+│   │   └── ws-protocol-internals.md  # Socket.IO protocol, events catalogue, connexion sequence
 │   └── types/
 │       ├── global.d.ts         # Window globals, GameScene, __DEV__
 │       ├── player.d.ts         # PlayerPos, Waypoint, LocalPlayer, GameApp, OtherPlayer, PlayerProfile
@@ -66,18 +68,25 @@ src/
 │   │   ├── fishing-loop.ts     # Bot state machine (5 phases)
 │   │   ├── challenge-solver.ts # FNV-1a solver + setupFishingGlobals()
 │   │   ├── fish-rarity.ts      # calculateGold, getRarity
-│   │   └── force-fishing.ts    # Sit + fishing animation hack
+│   │   ├── force-fishing.ts    # Sit + fishing animation hack
+│   │   └── docs/
+│   │       └── fishing-internals.md
 │   ├── teleport/               # TP + POI + inter-map navigation
 │   │   ├── data/poi-database.ts
 │   │   ├── ui/
 │   │   │   ├── poi-view.ts     # Vue HUD POIs
 │   │   │   └── waypoints-view.ts # Vue HUD Waypoints
-│   │   └── teleport.ts         # doTP, doInterMapTP, initSceneCache
-│   ├── players/                # Liste des joueurs + TP vers joueurs
-│   │   ├── player-tracker.ts   # getTrackedPlayers() : fusionne gameApp.players + __playerProfiles
-│   │   └── ui/
-│   │       ├── players-view.ts     # Liste joueurs avec recherche + modal grille + auto-refresh 5s
-│   │       └── player-actions-view.ts # Actions par joueur (TP avec offset siège)
+│   │   ├── teleport.ts         # doTP, doInterMapTP, initSceneCache
+│   │   └── docs/
+│   │       └── scene-internals.md
+│   ├── players/                # Liste des joueurs + TP vers joueurs + burrow visit
+│   │   ├── player-tracker.ts   # getTrackedPlayers() : fusionne gameApp.players + __playerProfiles + friendIds
+│   │   ├── data/burrow-database.ts # Constantes burrow (privacy levels, spawn, timeout)
+│   │   ├── ui/
+│   │   │   ├── players-view.ts     # Liste joueurs avec tabs All/Friends + recherche + modal grille
+│   │   │   └── player-actions-view.ts # Actions par joueur (TP, visit burrow, privacy check)
+│   │   └── docs/
+│   │       └── social-internals.md
 │   └── actions/                # Actions joueur génériques
 │       ├── ui/actions-view.ts  # Vue HUD Actions (sit, noclip, speed)
 │       ├── sit.ts              # toggleSit state machine
@@ -133,6 +142,18 @@ L'ordre est critique — webpack spy et WS hook doivent être installés avant q
 - `localPlayer` est séparé de `players`, accessible via `gameApp.localPlayer`
 - Les API REST (`/api/getFriends`, `/api/getMapData`) retournent 401 depuis le client (auth Supabase server-side) — pas d'accès cross-map aux joueurs depuis le userscript
 
+### Documentation reverse-engineered
+
+Docs techniques pour l'IA sur les mecanismes internes du jeu. A LIRE avant de toucher au domaine concerne :
+
+| Domaine | Fichier | Quand lire |
+|---------|---------|------------|
+| Peche (bot, minigame, WS events) | `src/features/fishing/docs/fishing-internals.md` | Toute modif fishing |
+| Physique joueur (collision, noclip, speed) | `src/features/actions/docs/player-physics-internals.md` | Toute modif mouvement/collision |
+| Social (amis, burrows, profils, privacy) | `src/features/players/docs/social-internals.md` | Toute modif players/friends/burrow |
+| Scenes (maps, cache, loadScene, TP) | `src/features/teleport/docs/scene-internals.md` | Toute modif teleport/scenes/maps |
+| Protocol WS (Socket.IO, events, auth, cross-map) | `src/core/docs/ws-protocol-internals.md` | Toute modif websocket-hook, ajout d'events, debug WS |
+
 ### Mécanique de collision (reverse-engineered)
 
 Documentation détaillée dans `src/features/actions/docs/player-physics-internals.md`. Points clés :
@@ -147,6 +168,6 @@ Documentation détaillée dans `src/features/actions/docs/player-physics-interna
 
 ### Limitations connues
 
-- Cross-map : pas d'accès aux joueurs sur d'autres maps (API 401, pas de Supabase client accessible)
+- Cross-map : API REST 401, mais `updateRoom` WS event donne la room de tout joueur du meme lobby (voir `ws-protocol-internals.md`)
 - Noclip + disable : nécessite un doTP pour ancrer la position sinon pushback sous la map
 - Speed : le localPlayer est recréé au changement de map, le watcher (setInterval 2s) re-applique le multiplier
