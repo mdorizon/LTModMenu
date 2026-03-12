@@ -16,6 +16,50 @@ ambient, blossom, cozy, daydream
 
 Chaque lobby = un serveur Socket.IO independant a `wss://<lobby>.lofi.town/socket.io/`. Detection dynamique : on extrait le sous-domaine de l'URL WS, et les presences d'amis (`friendPresences` dans `connected`) revelent les lobbies existants.
 
+## Orchestrator API
+
+L'Orchestrator (`https://orchestrator.lofi.town`) est l'API publique de decouverte de serveurs. Pas besoin d'auth.
+
+### Endpoints
+
+#### `GET /servers`
+
+```json
+{
+  "servers": [
+    { "id": "ambient", "url": "https://ambient.lofi.town" },
+    { "id": "blossom", "url": "https://blossom.lofi.town" },
+    { "id": "cozy", "url": "https://cozy.lofi.town" },
+    { "id": "daydream", "url": "https://daydream.lofi.town" }
+  ],
+  "recommended": { "id": "ambient", "url": "https://ambient.lofi.town" }
+}
+```
+
+Champs : `id` (nom du lobby, correspond au sous-domaine WS) et `url` (HTTPS, pas WSS). `recommended` = le serveur que le jeu propose par defaut (generalement le moins charge).
+
+#### `GET /player-counts`
+
+```json
+{
+  "total": 438,
+  "lobbies": { "ambient": 239, "blossom": 95, "cozy": 50, "daydream": 54 }
+}
+```
+
+`lobbies` est un `Record<string, number>` — cle = lobby id, valeur = nombre de joueurs connectes.
+
+### Constantes
+
+| Constante | Valeur | Signification |
+|-----------|--------|---------------|
+| `SOFT_CAP` | 250 | Seuil au-dela duquel le jeu redirige les nouveaux joueurs vers un autre lobby |
+| `MAX_PLAYERS` | 350 | Limite dure par serveur |
+
+### Usage dans le mod
+
+Le mod utilise `/player-counts` pour le bouton "Join least populated lobby" (dans POI view). Le fetch est fait au clic, pas en polling continu. L'Orchestrator n'est PAS utilise pour le cross-lobby TP (qui repose sur les presences WS des amis via `friendPresences`).
+
 ## Mecanisme de switch — vue technique
 
 ### Sequence complete
