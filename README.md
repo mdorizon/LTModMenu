@@ -12,8 +12,10 @@ Includes an automatic fishing bot, teleportation, waypoints, and detailed statis
 ## Installation
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/) on your browser
-2. Create a new userscript and paste the contents of [`ltmodmenu.user.js`](https://github.com/mdorizon/LTModMenu/releases/latest)
+2. [Click here to install LTModMenu](https://mdorizon.github.io/LTModMenu/ltmodmenu.user.js) — Tampermonkey will prompt you automatically
 3. Go to [lofi.town](https://lofi.town/) — the menu appears automatically
+
+Updates are delivered automatically via Tampermonkey.
 
 ---
 

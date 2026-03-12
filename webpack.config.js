@@ -11,13 +11,18 @@ class PrependBannerPlugin {
           stage: webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE,
         },
         (assets) => {
+          const pkg = JSON.parse(
+            fs.readFileSync(path.resolve(__dirname, "package.json"), "utf-8"),
+          );
+          const rawBanner = fs.readFileSync(
+            path.resolve(__dirname, "banner.txt"),
+            "utf-8",
+          );
+          const banner = rawBanner.replace("{{version}}", pkg.version);
+
           for (const name of Object.keys(assets)) {
             if (!name.endsWith(".js")) continue;
 
-            const banner = fs.readFileSync(
-              path.resolve(__dirname, "banner.txt"),
-              "utf-8",
-            );
             const code = assets[name].source().toString();
             const result = `${banner.trim()}
 
@@ -33,6 +38,11 @@ ${code}
 `;
             compilation.updateAsset(name, new webpack.sources.RawSource(result));
           }
+
+          compilation.emitAsset(
+            "ltmodmenu.meta.js",
+            new webpack.sources.RawSource(banner.trim() + "\n"),
+          );
         },
       );
     });
