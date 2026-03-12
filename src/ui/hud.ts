@@ -6,6 +6,8 @@ import { renderWaypoints } from "@features/teleport/ui/waypoints-view";
 import { renderActions } from "@features/actions/ui/actions-view";
 import { renderFishing } from "@features/fishing/ui/fishing-view";
 import { renderPlayers } from "@features/players/ui/players-view";
+import { renderFocus } from "@features/focus/ui/focus-view";
+import { tryAutoRejoin } from "@features/focus/focus-bot";
 import { startAutoSave } from "@core/storage";
 import { initSceneCache } from "@features/teleport/teleport";
 import { initThemeSync } from "./theme";
@@ -47,6 +49,7 @@ export function initHUD(): void {
     actions: () => renderActions(hud, renderMainFn, pages),
     fish: () => renderFishing(hud, renderMainFn, pages),
     players: () => renderPlayers(hud, renderMainFn, pages),
+    focus: () => renderFocus(hud, renderMainFn, pages),
   };
 
   // ── Drag ──
@@ -218,6 +221,9 @@ export function initHUD(): void {
 
   // ── Start auto-save ──
   startAutoSave();
+
+  // ── Auto-rejoin focus session if bot was active before reload ──
+  tryAutoRejoin();
 }
 
 export function tryInit(): void {

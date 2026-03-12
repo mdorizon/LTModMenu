@@ -55,6 +55,7 @@ export function bindNav(renderMain: RenderFn, pages: Record<string, RenderFn>): 
     actions: "lt-go-actions",
     players: "lt-go-players",
     fish: "lt-go-fish",
+    focus: "lt-go-focus",
   };
 
   for (const page in goMap) {

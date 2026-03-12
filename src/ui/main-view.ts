@@ -19,6 +19,7 @@ export function renderMain(
     mkItemTag("lt-go-actions", "Actions", "DETECTABLE") +
     mkItemTag("lt-go-players", "Players", "DETECTABLE") +
     mkItem("lt-go-fish", "Fishing") +
+    mkItem("lt-go-focus", "Focus") +
     "</div>";
   bindNav(() => renderMain(hud, pages), pages);
   renderDevTools(hud);

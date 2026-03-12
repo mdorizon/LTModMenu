@@ -63,12 +63,24 @@ export interface FriendPresence {
   username: string;
 }
 
+export interface InputManager {
+  disableInputEvents: Set<string>;
+  disableTouchInput: boolean;
+  movement: { x: number; y: number };
+  keyboardMovement: { x: number; y: number };
+  touchMovement: { x: number; y: number };
+  stopInput: (freeze: boolean, reason: string) => void;
+  isFrozen: () => boolean;
+  isMoving: () => boolean;
+}
+
 export interface GameApp {
   localPlayer: LocalPlayer;
   players: Record<string, OtherPlayer>;
   currentCamera: {
     moveCameraToPlayer: (instant: boolean) => void;
   };
+  input?: InputManager;
   currentScene?: GameScene;
   currentServerRoomId?: string;
   interactables?: Record<string, { onInteract?: () => void }>;
