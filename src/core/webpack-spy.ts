@@ -1,6 +1,97 @@
-// Side-effect module: hooks webpackChunk_N_E.push to capture gameApp
+// Side-effect module: hooks webpackChunk_N_E.push to capture gameApp,
+// Zustand stores, GameGlobals signal bus, and Socket.IO client wrapper
 
 import { log } from "./logger";
+import type { LTStores } from "./types/global.d";
+
+// [storeName, moduleId, exportKey]
+// Export keys come from minified webpack output — may change between game builds
+const STORE_DEFS: [keyof LTStores, number, string][] = [
+  ["useUserData", 92764, "useUserData"],
+  ["useSettings", 29546, "useSettings"],
+  ["useUsersStore", 62021, "k"],
+  ["useLobbyStore", 65749, "G"],
+  ["useMissionStore", 79165, "I"],
+  ["useFocusSession", 59740, "useFocusSession"],
+  ["useFishingStats", 20079, "useFishingStats"],
+  ["useModalStore", 9192, "h"],
+  ["useFishingFrenzy", 79709, "useFishingFrenzy"],
+  ["useFriendPresence", 8626, "useFriendPresence"],
+];
+
+function findZustandStore(moduleExports: any, expectedKey: string): any {
+  const candidate = moduleExports[expectedKey];
+  if (candidate && typeof candidate.getState === "function") return candidate;
+  for (const key of Object.keys(moduleExports)) {
+    const val = moduleExports[key];
+    if (val && typeof val.getState === "function" && typeof val.setState === "function") {
+      return val;
+    }
+  }
+  return null;
+}
+
+function captureStoresAndGlobals(require: (id: number) => any): void {
+  if (!window.__stores) window.__stores = {} as LTStores;
+
+  function attemptCapture(): boolean {
+    for (const [name, moduleId, exportKey] of STORE_DEFS) {
+      if (window.__stores[name]) continue;
+      try {
+        const mod = require(moduleId);
+        const store = findZustandStore(mod, exportKey);
+        if (store) {
+          (window.__stores as any)[name] = store;
+          log("WEBPACK", `Captured store: ${name} (module ${moduleId})`);
+        }
+      } catch (_e) { /* module not loaded yet */ }
+    }
+
+    if (!window.__gameGlobals) {
+      try {
+        const mod = require(20993);
+        if (mod.A?.signal) {
+          window.__gameGlobals = mod.A;
+          log("WEBPACK", "Captured GameGlobals (module 20993)");
+        }
+      } catch (_e) { /* not loaded */ }
+    }
+
+    if (!window.__socketClient) {
+      try {
+        const mod = require(51496);
+        if (mod.A && (mod.A.socket || typeof mod.A.emit === "function")) {
+          window.__socketClient = mod.A;
+          log("WEBPACK", "Captured SocketClient (module 51496)");
+        }
+      } catch (_e) { /* not loaded */ }
+    }
+
+    const missing = STORE_DEFS.filter(([name]) => !window.__stores[name]);
+    return missing.length === 0 && !!window.__gameGlobals && !!window.__socketClient;
+  }
+
+  if (attemptCapture()) {
+    log("WEBPACK", "All stores and globals captured immediately");
+    return;
+  }
+
+  let retries = 0;
+  const interval = setInterval(() => {
+    retries++;
+    if (attemptCapture()) {
+      clearInterval(interval);
+      log("WEBPACK", `All stores and globals captured (retry #${retries})`);
+    } else if (retries >= 30) {
+      clearInterval(interval);
+      const missing = STORE_DEFS.filter(([name]) => !window.__stores[name]);
+      if (missing.length > 0)
+        log("WEBPACK", "Missing stores after 30 retries: " + missing.map(s => s[0]).join(", "));
+      if (!window.__gameGlobals) log("WEBPACK", "GameGlobals not captured after 30 retries");
+      if (!window.__socketClient) log("WEBPACK", "SocketClient not captured after 30 retries");
+    }
+  }, 1000);
+}
 
 function extractBurrowTemplates(): void {
   try {
@@ -107,6 +198,7 @@ log(
           "lt-spy-mod": function (_module: any, _exports: any, require: any) {
               log("WEBPACK", "Spy module executing, require available: " + typeof require);
               window.__wpRequire = require;
+              captureStoresAndGlobals(require);
               try {
                 log("WEBPACK", "Trying require(20493)...");
                 const appModule = require(20493);

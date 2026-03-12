@@ -7,6 +7,48 @@ export interface GameScene {
   [key: string]: unknown;
 }
 
+export interface ZustandStore<T = any> {
+  getState: () => T;
+  setState: (partial: Partial<T> | ((state: T) => Partial<T>), replace?: boolean) => void;
+  subscribe: (listener: (state: T, prevState: T) => void) => () => void;
+  destroy: () => void;
+}
+
+export interface LTStores {
+  useUserData?: ZustandStore;
+  useSettings?: ZustandStore;
+  useUsersStore?: ZustandStore;
+  useLobbyStore?: ZustandStore;
+  useMissionStore?: ZustandStore;
+  useFocusSession?: ZustandStore;
+  useFishingStats?: ZustandStore;
+  useModalStore?: ZustandStore;
+  useFishingFrenzy?: ZustandStore;
+  useFriendPresence?: ZustandStore;
+}
+
+export interface GameGlobals {
+  signal: {
+    emit: (event: string, ...args: any[]) => void;
+    on: (event: string, listener: (...args: any[]) => void) => void;
+    off: (event: string, listener: (...args: any[]) => void) => void;
+  };
+  manualCameraControl: boolean;
+  dragCameraMode: boolean;
+  progressMission: (key: string, amount?: number) => void;
+  isHidden: () => boolean;
+  minimapMarkerRefs: Record<string, any>;
+  playerHUDRefs: Record<string, any>;
+}
+
+export interface SocketClient {
+  socket: any;
+  emit: (event: string, data?: any) => void;
+  on: (event: string, callback: (...args: any[]) => void) => void;
+  off: (event: string, callback?: (...args: any[]) => void) => void;
+  awaitEvent: (event: string) => Promise<any>;
+}
+
 declare global {
   const __DEV__: boolean;
 
@@ -32,6 +74,9 @@ declare global {
     __lobbySwitching: boolean;
     __playerRooms: Map<string, string>;
     __ltModMenuLoaded?: boolean;
+    __stores: LTStores;
+    __gameGlobals: GameGlobals | null;
+    __socketClient: SocketClient | null;
     webpackChunk_N_E: unknown[];
   }
 }
