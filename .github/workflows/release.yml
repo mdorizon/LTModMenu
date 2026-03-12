@@ -36,17 +36,70 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist
 
+      - name: Generate release notes
+        id: notes
+        run: |
+          CURRENT_TAG="${GITHUB_REF#refs/tags/}"
+          PREV_TAG=$(git tag --sort=-v:refname | grep -v "^${CURRENT_TAG}$" | head -1)
+
+          if [ -z "$PREV_TAG" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="${PREV_TAG}..${CURRENT_TAG}"
+          fi
+
+          COMMITS=$(git log "$RANGE" --pretty=format:"%s" --no-merges)
+
+          features="" fixes="" refactors="" ui="" infra="" docs="" other=""
+
+          while IFS= read -r msg; do
+            [ -z "$msg" ] && continue
+            case "$msg" in
+              *✨*)       features+=$'\n'"- $msg" ;;
+              *🐛*|*🩹*) fixes+=$'\n'"- $msg" ;;
+              *♻️*|*🏗️*|*🔥*) refactors+=$'\n'"- $msg" ;;
+              *💄*|*🎨*) ui+=$'\n'"- $msg" ;;
+              *🔧*|*👷*|*💚*|*🙈*|*⬆️*|*⬇️*) infra+=$'\n'"- $msg" ;;
+              *📝*)       docs+=$'\n'"- $msg" ;;
+              *🔖*|*🔀*) ;; # skip version bumps and merge commits
+              *)           other+=$'\n'"- $msg" ;;
+            esac
+          done <<< "$COMMITS"
+
+          body=""
+          [ -n "$features" ]  && body+="## Features${features}"$'\n\n'
+          [ -n "$fixes" ]     && body+="## Bug Fixes${fixes}"$'\n\n'
+          [ -n "$refactors" ] && body+="## Refactoring${refactors}"$'\n\n'
+          [ -n "$ui" ]        && body+="## UI / Style${ui}"$'\n\n'
+          [ -n "$infra" ]     && body+="## Infrastructure${infra}"$'\n\n'
+          [ -n "$docs" ]      && body+="## Documentation${docs}"$'\n\n'
+          [ -n "$other" ]     && body+="## Other${other}"$'\n\n'
+
+          if [ -z "$body" ]; then
+            body="No notable changes."
+          fi
+
+          {
+            echo "body<<RELEASE_EOF"
+            echo "$body"
+            echo "RELEASE_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: dist/ltmodmenu.user.js
-          generate_release_notes: true
+          body: ${{ steps.notes.outputs.body }}
 
   deploy-pages:
     needs: build
