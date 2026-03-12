@@ -36,6 +36,7 @@ export function log(category: string, message: string, data?: unknown): void {
   // In dev mode, queue for sending to log server
   if (__DEV__) {
     pending.push(entry);
+    if (wsAllEnabled) pendingWsAll.push(entry);
   }
 }
 

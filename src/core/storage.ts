@@ -47,6 +47,11 @@ export function initGlobalState(): void {
   window.__localPlayerId = null;
   window.__botPaused = true;
   window.__sceneCache = new Map();
+  window.__currentLobby = null;
+  window.__wsAuthToken = null;
+  window.__lobbyOverride = null;
+  window.__lobbySwitching = false;
+  window.__playerRooms = new Map();
 
   window.__waypoints = loadData<Waypoint[]>("waypoints", []);
   window.__fishStats = loadData<FishStats>("fishStats", {

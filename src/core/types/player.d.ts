@@ -44,7 +44,21 @@ export interface OtherPlayer {
   sitAnimation?: string;
 }
 
+export interface ActiveBurrow {
+  id: string;
+  privacyLevel: string;
+  template: string;
+}
+
 export interface PlayerProfile {
+  displayName: string;
+  username: string;
+  activeBurrow?: ActiveBurrow | null;
+}
+
+export interface FriendPresence {
+  online: boolean;
+  lobby: string;
   displayName: string;
   username: string;
 }
@@ -58,6 +72,14 @@ export interface GameApp {
   currentScene?: GameScene;
   currentServerRoomId?: string;
   interactables?: Record<string, { onInteract?: () => void }>;
-  loadScene?: (opts: { scene: GameScene }) => void;
+  loadScene?: (opts: {
+    scene: GameScene;
+    burrow?: { id: string; subRoom: number };
+    position?: { x: number; y: number; direction: string };
+    doNotGetMapData?: boolean;
+  }) => void;
   backToMainScene?: () => void;
+  isFirstLoad?: boolean;
+  hasInitiallyJoinedRoom?: boolean;
+  loadingScene?: boolean;
 }
