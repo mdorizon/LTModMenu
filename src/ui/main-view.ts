@@ -17,6 +17,7 @@ export function renderMain(
     mkItemTag("lt-go-poi", "POIs", "DETECTABLE") +
     mkItemTag("lt-go-tp", "Waypoints", "DETECTABLE") +
     mkItemTag("lt-go-actions", "Actions", "DETECTABLE") +
+    mkItemTag("lt-go-players", "Players", "DETECTABLE") +
     mkItem("lt-go-fish", "Fishing") +
     "</div>";
   bindNav(() => renderMain(hud, pages), pages);

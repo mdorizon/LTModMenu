@@ -36,6 +36,7 @@ export function bindNav(renderMain: RenderFn, pages: Record<string, RenderFn>): 
     poi: "lt-go-poi",
     tp: "lt-go-tp",
     actions: "lt-go-actions",
+    players: "lt-go-players",
     fish: "lt-go-fish",
   };
 
