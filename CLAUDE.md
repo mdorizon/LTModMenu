@@ -50,13 +50,14 @@ src/
 ├── index.ts                    # Entry point, ordre d'init critique
 ├── core/                       # Partagé entre toutes les features
 │   ├── console-filter.ts       # Filtre les logs console du jeu (auto-detect via stack trace)
-│   ├── game.ts                 # wsSend, gameClick, getPos, getCurrentMap
+│   ├── game.ts                 # wsSend, gameClick, getPos, getCurrentMap, switchLobby
 │   ├── logger.ts               # log(), logWsAll(), dev server flush
 │   ├── storage.ts              # localStorage wrapper, initGlobalState, autoSave
 │   ├── webpack-spy.ts          # Hook webpackChunk pour capturer gameApp
 │   ├── websocket-hook.ts       # Intercepte WebSocket pour logger + fishing/player events
 │   ├── docs/
-│   │   └── ws-protocol-internals.md  # Socket.IO protocol, events catalogue, connexion sequence
+│   │   ├── ws-protocol-internals.md  # Socket.IO protocol, events catalogue, connexion sequence
+│   │   └── lobby-switch-internals.md # Lobby switching mechanism, anti-spam, cross-lobby TP
 │   └── types/
 │       ├── global.d.ts         # Window globals, GameScene, __DEV__
 │       ├── player.d.ts         # PlayerPos, Waypoint, LocalPlayer, GameApp, OtherPlayer, PlayerProfile
@@ -97,8 +98,8 @@ src/
 └── ui/                         # Shell du menu (pas de logique métier)
     ├── hud.ts                  # Init HUD, drag, keyboard nav, retry gameApp
     ├── main-view.ts            # Vue d'accueil avec liens
-    ├── components.ts           # mkHeader, mkItem, mkItemTag, bindNav
-    ├── styles.ts               # CSS injecté (thème via CSS vars)
+    ├── components.ts           # mkHeader, mkItem, mkItemTag, bindNav, showTransitionOverlay
+    ├── styles.ts               # CSS injecté (thème via CSS vars, transition overlay)
     ├── theme.ts                # Sync thème avec le site lofi.town
     ├── data/theme-database.ts  # CSS vars mapping + couleurs par défaut
     └── dev-tools.ts            # Toggle WS All Logs (__DEV__ only)
@@ -153,6 +154,7 @@ Docs techniques pour l'IA sur les mecanismes internes du jeu. A LIRE avant de to
 | Social (amis, burrows, profils, privacy) | `src/features/players/docs/social-internals.md` | Toute modif players/friends/burrow |
 | Scenes (maps, cache, loadScene, TP) | `src/features/teleport/docs/scene-internals.md` | Toute modif teleport/scenes/maps |
 | Protocol WS (Socket.IO, events, auth, cross-map) | `src/core/docs/ws-protocol-internals.md` | Toute modif websocket-hook, ajout d'events, debug WS |
+| Lobby switch (mecanisme, anti-spam, cross-lobby TP) | `src/core/docs/lobby-switch-internals.md` | Toute modif switchLobby, cross-lobby, transition overlay |
 
 ### Mécanique de collision (reverse-engineered)
 

@@ -10,10 +10,12 @@ lofi.town utilise Socket.IO v4 par-dessus un WebSocket natif. La connexion passe
 ### URL de connexion
 
 ```
-wss://app.lofi.town/socket.io/?EIO=4&transport=websocket&sid=...
+wss://<lobby>.lofi.town/socket.io/?sessionId=<uuid>&EIO=4&transport=websocket
 ```
 
-`EIO=4` = Engine.IO protocol v4. Le `sid` est attribue par le serveur apres le handshake initial (souvent via HTTP long-polling, puis upgrade WS).
+- Le sous-domaine = le nom du lobby (`ambient`, `blossom`, `cozy`, `daydream`)
+- `sessionId` = UUID genere par le client a chaque nouvelle connexion
+- `EIO=4` = Engine.IO protocol v4
 
 ### Prefixes de messages
 
@@ -42,10 +44,10 @@ Premier message recu apres connexion WS :
 
 Envoye par le client juste apres le handshake :
 ```
-40{"auth":{"token":"eyJhbGciOi..."}}
+40{"token":"eyJhbGciOi..."}
 ```
 
-Le token est un JWT Supabase. Contient au minimum le `sub` (user ID Discord-style) et les claims d'expiration standard.
+Le token est un JWT contenant au minimum `id` (user ID Discord-style) et `discordAccessToken`. Expire apres ~1h.
 
 ### Ping/Pong
 
@@ -53,13 +55,15 @@ Le serveur envoie `2` (PING), le client repond `3` (PONG). Cycle toutes les ~25s
 
 ## Sequence de connexion complete
 
-1. Client ouvre WS vers `wss://app.lofi.town/socket.io/...`
-2. Serveur envoie `0{...}` (handshake Engine.IO)
-3. Client envoie `40{"auth":{"token":"..."}}` (auth Socket.IO)
-4. Serveur envoie `42["connected", {...}]` (confirmation + etat initial)
-5. Client envoie `42["joinRoom", "main"]` (ou autre room)
-6. Serveur envoie `42["initOtherPlayers", {...}]` (bulk load joueurs de la room)
-7. Boucle normale : events bidirectionnels `42[...]`
+1. Client ouvre WS vers `wss://<lobby>.lofi.town/socket.io/?sessionId=<uuid>&EIO=4&transport=websocket`
+2. Serveur envoie `0{...}` (handshake Engine.IO avec sid, pingInterval, etc.)
+3. Serveur envoie `40{"sid":"...","pid":"..."}` (Socket.IO CONNECT ACK)
+4. Client envoie `40{"token":"..."}` (auth JWT)
+5. Serveur envoie `42["connected", {...}]` (etat initial complet)
+6. Client charge la scene (`loadScene` est appele par le handler `connected`)
+7. Client envoie `42["joinRoom", {"room":"main","position":{...}}]`
+8. Serveur envoie `42["initOtherPlayers", {...}]` (bulk load joueurs de la room)
+9. Boucle normale : events bidirectionnels `42[...]`
 
 ## Le `connected` event — payload complet
 
@@ -170,11 +174,30 @@ Valeurs de `room` observees :
 ### Architecture
 
 ```
-Lobby (serveur)           → "ambient", "blossom", "daydream", etc.
-  └── Room (sous-espace)  → "main", "fishing", "coffee-shop", "burrow:uuid:0"
+Lobby (serveur WS distinct)   → "ambient", "blossom", "cozy", "daydream"
+  └── Room (sous-espace)       → "main", "fishing", "coffee-shop", "burrow:uuid:0"
 ```
 
-Un lobby est un serveur Socket.IO independant. Chaque lobby a ses propres rooms. Les events WS ne traversent PAS les lobbies — on ne voit que les joueurs de notre lobby.
+4 lobbies connus : `ambient`, `blossom`, `cozy`, `daydream`. Chacun est un serveur Socket.IO independant a `wss://<lobby>.lofi.town/socket.io/`.
+
+### Lobby switching (mecanisme)
+
+Quand le joueur switch de lobby dans l'UI du jeu :
+
+1. Client envoie `41` (Socket.IO disconnect) sur la WS courante
+2. Client cree immediatement une nouvelle WebSocket vers `wss://<targetLobby>.lofi.town/socket.io/?sessionId=<newUUID>&EIO=4&transport=websocket`
+3. Ancienne WS se ferme (code 1005, ~200ms apres)
+4. Nouvelle WS s'ouvre
+5. Handshake EIO + auth JWT (meme token, meme flow que la connexion initiale)
+6. Serveur envoie `connected` avec l'etat complet
+7. Le jeu charge la scene `main`, envoie `joinRoom`
+
+**Points cles :**
+- Aucun event WS "switchLobby" — c'est entierement client-side
+- Le JWT est le meme pour tous les lobbies
+- Le `sessionId` est un nouvel UUID a chaque connexion
+- Le delai entre `41` SEND et `new WebSocket()` est ~2ms (quasiment simultane)
+- `loadScene` est appele automatiquement par le handler du `connected` event
 
 ### Implications
 
@@ -190,4 +213,6 @@ Un lobby est un serveur Socket.IO independant. Chaque lobby a ses propres rooms.
 - `newFriend` a 2 arguments (parsed[1] = ID, parsed[2] = profil) — inhabituel en Socket.IO
 - Les events `playerMoved`/`updatePosition` sont tres haute frequence (~10/s par joueur), a filtrer
 - `maxPayload` de 1MB : theoriquement un message ne peut pas depasser cette taille
-- Le JWT dans `40` auth est un token Supabase standard, expire apres ~1h
+- Le JWT dans `40` auth expire apres ~1h
+- Lobby switch = nouvelle WebSocket + nouveau sessionId — l'ancienne connexion meurt, toutes les references deviennent stale
+- Socket.IO auto-reconnect peut se declencher apres un close inattendu — il reconnectera au MEME lobby (meme URL)
