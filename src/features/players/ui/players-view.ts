@@ -3,16 +3,78 @@ import { getTrackedPlayers, type TrackedPlayer } from "../player-tracker";
 import { renderPlayerActions } from "./player-actions-view";
 
 const MAX_RESULTS = 5;
-const REFRESH_INTERVAL = 5000;
+const FALLBACK_REFRESH = 15000;
 
-function renderFilteredList(
+type TabFilter = "all" | "friends";
+
+interface FriendEntry {
+  id: string;
+  displayName: string;
+  username: string;
+  online: boolean;
+  lobby: string;
+  onMap: boolean;
+  player: TrackedPlayer | null;
+}
+
+function matchesQuery(query: string, displayName: string, username: string): boolean {
+  const q = query.toLowerCase();
+  return displayName.toLowerCase().includes(q) || username.toLowerCase().includes(q);
+}
+
+function nameHtml(displayName: string, username: string): string {
+  const dn = escHtml(displayName);
+  if (!username || username === displayName) return "<span>" + dn + "</span>";
+  return '<span class="lt-name-stack"><span>' + dn + '</span><span class="lt-username">@' + escHtml(username) + "</span></span>";
+}
+
+function getAllFriends(onMapPlayers: TrackedPlayer[]): FriendEntry[] {
+  const friends = window.__friendIds;
+  const profiles = window.__playerProfiles;
+  const onMapById = new Map<string, TrackedPlayer>();
+  for (const p of onMapPlayers) {
+    if (p.isFriend) onMapById.set(p.id, p);
+  }
+
+  const entries: FriendEntry[] = [];
+  for (const [id, presence] of friends) {
+    const player = onMapById.get(id) || null;
+    const profile = profiles.get(id);
+    entries.push({
+      id,
+      displayName: player?.displayName || profile?.displayName || presence.displayName || id.slice(0, 10) + "...",
+      username: player?.username || profile?.username || presence.username || "",
+      online: !!player || presence.online,
+      lobby: presence.lobby,
+      onMap: !!player,
+      player,
+    });
+  }
+
+  return entries.sort((a, b) => {
+    if (a.onMap !== b.onMap) return a.onMap ? -1 : 1;
+    if (a.online !== b.online) return a.online ? -1 : 1;
+    return a.displayName.localeCompare(b.displayName);
+  });
+}
+
+function mkTabs(activeTab: TabFilter, idPrefix: string, friendCount: number): string {
+  return '<div class="lt-tabs">' +
+    '<button class="lt-tab' + (activeTab === "all" ? " lt-tab-active" : "") +
+    '" id="' + idPrefix + '-all">All</button>' +
+    '<button class="lt-tab' + (activeTab === "friends" ? " lt-tab-active" : "") +
+    '" id="' + idPrefix + '-friends">Friends (' + friendCount + ')</button>' +
+    "</div>";
+}
+
+function renderPlayerList(
   container: HTMLElement,
   players: TrackedPlayer[],
   query: string,
   onSelect: (p: TrackedPlayer) => void,
 ): void {
   const filtered = query
-    ? players.filter((p) => p.displayName.toLowerCase().includes(query.toLowerCase()))
+    ? players.filter((p) => matchesQuery(query, p.displayName, p.username))
     : players;
 
   const shown = filtered.slice(0, MAX_RESULTS);
@@ -21,7 +83,7 @@ function renderFilteredList(
   container.innerHTML = shown.length > 0
     ? shown.map((p, i) =>
         '<button class="lt-item" id="lt-pf-' + i + '">' +
-        "<span>" + escHtml(p.displayName) + "</span>" +
+        nameHtml(p.displayName, p.username) +
         '<span class="lt-sub">' + p.x + ", " + p.y + "</span>" +
         "</button>",
       ).join("") +
@@ -36,11 +98,54 @@ function renderFilteredList(
   });
 }
 
+function renderFriendList(
+  container: HTMLElement,
+  friends: FriendEntry[],
+  query: string,
+  onSelect: (p: TrackedPlayer) => void,
+): void {
+  const filtered = query
+    ? friends.filter((f) => matchesQuery(query, f.displayName, f.username))
+    : friends;
+
+  const shown = filtered.slice(0, MAX_RESULTS);
+  const remaining = filtered.length - shown.length;
+
+  container.innerHTML = shown.length > 0
+    ? shown.map((f, i) => {
+        if (f.onMap && f.player) {
+          return '<button class="lt-item" id="lt-pf-' + i + '">' +
+            nameHtml(f.displayName, f.username) +
+            '<span class="lt-sub">' + f.player.x + ", " + f.player.y + "</span>" +
+            "</button>";
+        }
+        const status = f.online ? "online @ " + f.lobby : "offline";
+        return '<div class="lt-item lt-friend-away">' +
+          nameHtml(f.displayName, f.username) +
+          '<span class="lt-sub">' + status + "</span>" +
+          "</div>";
+      }).join("") +
+      (remaining > 0
+        ? '<div class="lt-empty">+ ' + remaining + " more...</div>"
+        : "")
+    : '<div class="lt-empty">' + (query ? "No match" : "No friends known") + "</div>";
+
+  shown.forEach((f, i) => {
+    if (f.onMap && f.player) {
+      const el = document.getElementById("lt-pf-" + i);
+      if (el) el.onclick = () => onSelect(f.player!);
+    }
+  });
+}
+
 function openPlayerModal(
   onSelect: (p: TrackedPlayer) => void,
+  initialTab: TabFilter = "all",
 ): void {
   const existing = document.getElementById("lt-players-modal");
   if (existing) existing.remove();
+
+  let modalTab: TabFilter = initialTab;
 
   const overlay = document.createElement("div");
   overlay.id = "lt-players-modal";
@@ -51,6 +156,7 @@ function openPlayerModal(
     '<button class="lt-pm-close">X</button>' +
     "</div>" +
     '<input class="lt-pm-search" placeholder="Search..." />' +
+    '<div id="lt-pm-tabs"></div>' +
     '<div class="lt-pm-grid" id="lt-pm-grid"></div>' +
     "</div>";
 
@@ -58,33 +164,86 @@ function openPlayerModal(
 
   const grid = document.getElementById("lt-pm-grid")!;
   const title = document.getElementById("lt-pm-title")!;
+  const tabsContainer = document.getElementById("lt-pm-tabs")!;
   const search = overlay.querySelector<HTMLInputElement>(".lt-pm-search")!;
   const close = overlay.querySelector<HTMLButtonElement>(".lt-pm-close")!;
   let lastQuery = "";
 
+  function bindModalTabs(friendCount: number): void {
+    tabsContainer.innerHTML = mkTabs(modalTab, "lt-pm-tab", friendCount);
+    document.getElementById("lt-pm-tab-all")!.onclick = () => {
+      modalTab = "all";
+      renderGrid();
+    };
+    document.getElementById("lt-pm-tab-friends")!.onclick = () => {
+      modalTab = "friends";
+      renderGrid();
+    };
+  }
+
+  function cellNameHtml(displayName: string, username: string): string {
+    const dn = escHtml(displayName);
+    if (!username || username === displayName) return dn;
+    return dn + '<div class="lt-pm-sub">@' + escHtml(username) + "</div>";
+  }
+
   function renderGrid(): void {
     const players = getTrackedPlayers();
+    const friends = getAllFriends(players);
     const query = lastQuery;
-    const filtered = query
-      ? players.filter((p) => p.displayName.toLowerCase().includes(query.toLowerCase()))
-      : players;
 
-    title.textContent = "Players (" + players.length + ")";
+    if (modalTab === "friends") {
+      title.textContent = "Friends (" + friends.length + ")";
+      bindModalTabs(friends.length);
 
-    grid.innerHTML = filtered.map((p, i) =>
-      '<button class="lt-pm-cell" data-pi="' + i + '">' +
-      escHtml(p.displayName) +
-      "</button>",
-    ).join("");
+      const filtered = query
+        ? friends.filter((f) => matchesQuery(query, f.displayName, f.username))
+        : friends;
 
-    grid.querySelectorAll<HTMLButtonElement>(".lt-pm-cell").forEach((btn) => {
-      const idx = Number(btn.dataset.pi);
-      btn.onclick = () => {
-        clearInterval(refreshId);
-        overlay.remove();
-        onSelect(filtered[idx]);
-      };
-    });
+      grid.innerHTML = filtered.length > 0
+        ? filtered.map((f, i) => {
+            const cls = f.onMap ? "lt-pm-cell" : (f.online ? "lt-pm-cell lt-pm-away" : "lt-pm-cell lt-pm-offline");
+            const status = f.onMap ? "" : ('<div class="lt-pm-sub">' + (f.online ? f.lobby : "offline") + "</div>");
+            return '<button class="' + cls + '" data-pi="' + i + '"' +
+              (f.onMap ? "" : " disabled") + ">" +
+              cellNameHtml(f.displayName, f.username) + status + "</button>";
+          }).join("")
+        : '<div class="lt-empty">' + (query ? "No match" : "No friends known") + "</div>";
+
+      grid.querySelectorAll<HTMLButtonElement>(".lt-pm-cell:not([disabled])").forEach((btn) => {
+        const idx = Number(btn.dataset.pi);
+        const entry = filtered[idx];
+        if (entry?.player) {
+          btn.onclick = () => {
+            cleanup();
+            onSelect(entry.player!);
+          };
+        }
+      });
+    } else {
+      title.textContent = "Players (" + players.length + ")";
+      bindModalTabs(friends.length);
+
+      const filtered = query
+        ? players.filter((p) => matchesQuery(query, p.displayName, p.username))
+        : players;
+
+      grid.innerHTML = filtered.length > 0
+        ? filtered.map((p, i) =>
+            '<button class="lt-pm-cell" data-pi="' + i + '">' +
+            cellNameHtml(p.displayName, p.username) +
+            "</button>",
+          ).join("")
+        : '<div class="lt-empty">' + (query ? "No match" : "No players") + "</div>";
+
+      grid.querySelectorAll<HTMLButtonElement>(".lt-pm-cell").forEach((btn) => {
+        const idx = Number(btn.dataset.pi);
+        btn.onclick = () => {
+          cleanup();
+          onSelect(filtered[idx]);
+        };
+      });
+    }
   }
 
   renderGrid();
@@ -94,10 +253,13 @@ function openPlayerModal(
     renderGrid();
   };
 
-  const refreshId = setInterval(renderGrid, REFRESH_INTERVAL);
+  const refreshId = setInterval(renderGrid, FALLBACK_REFRESH);
+  const onEvent = () => renderGrid();
+  document.addEventListener("lt:players-changed", onEvent);
 
   const cleanup = () => {
     clearInterval(refreshId);
+    document.removeEventListener("lt:players-changed", onEvent);
     overlay.remove();
   };
   close.onclick = cleanup;
@@ -111,29 +273,50 @@ function escHtml(s: string): string {
 }
 
 let activeRefreshId: ReturnType<typeof setInterval> | null = null;
+let activeEventHandler: (() => void) | null = null;
+
+function cleanupListeners(): void {
+  if (activeRefreshId !== null) {
+    clearInterval(activeRefreshId);
+    activeRefreshId = null;
+  }
+  if (activeEventHandler) {
+    document.removeEventListener("lt:players-changed", activeEventHandler);
+    activeEventHandler = null;
+  }
+}
 
 export function renderPlayers(
   hud: HTMLElement,
   renderMainFn: RenderFn,
   pages: Record<string, RenderFn>,
 ): void {
-  // Clear any previous refresh interval
-  if (activeRefreshId !== null) {
-    clearInterval(activeRefreshId);
-    activeRefreshId = null;
-  }
+  cleanupListeners();
+
+  let currentTab: TabFilter = "all";
 
   const searchInput = () => document.getElementById("lt-player-search") as HTMLInputElement | null;
   const resultsDiv = () => document.getElementById("lt-player-results");
   const headerTitle = () => hud.querySelector<HTMLElement>(".lt-title");
 
   const selectPlayer = (p: TrackedPlayer) => {
-    if (activeRefreshId !== null) {
-      clearInterval(activeRefreshId);
-      activeRefreshId = null;
-    }
+    cleanupListeners();
     renderPlayerActions(hud, renderMainFn, pages, p);
   };
+
+  function bindTabs(friendCount: number): void {
+    const container = document.getElementById("lt-player-tabs");
+    if (!container) return;
+    container.innerHTML = mkTabs(currentTab, "lt-pt", friendCount);
+    document.getElementById("lt-pt-all")!.onclick = () => {
+      currentTab = "all";
+      refreshList();
+    };
+    document.getElementById("lt-pt-friends")!.onclick = () => {
+      currentTab = "friends";
+      refreshList();
+    };
+  }
 
   function refreshList(): void {
     const res = resultsDiv();
@@ -141,8 +324,18 @@ export function renderPlayers(
     const title = headerTitle();
     if (!res || !input) return;
     const players = getTrackedPlayers();
-    if (title) title.textContent = "Players (" + players.length + ")";
-    renderFilteredList(res, players, input.value.trim(), selectPlayer);
+    const friends = getAllFriends(players);
+    const query = input.value.trim();
+
+    if (currentTab === "friends") {
+      if (title) title.textContent = "Friends (" + friends.length + ")";
+      bindTabs(friends.length);
+      renderFriendList(res, friends, query, selectPlayer);
+    } else {
+      if (title) title.textContent = "Players (" + players.length + ")";
+      bindTabs(friends.length);
+      renderPlayerList(res, players, query, selectPlayer);
+    }
   }
 
   const players = getTrackedPlayers();
@@ -151,30 +344,23 @@ export function renderPlayers(
     mkHeader("Players (" + players.length + ")", true) +
     '<div class="lt-body">' +
     '<input class="lt-input" id="lt-player-search" placeholder="Search player..." />' +
+    '<div id="lt-player-tabs"></div>' +
     '<div id="lt-player-results"></div>' +
     '<button class="lt-action lt-muted" id="lt-players-browse">Browse all</button>' +
     "</div>" +
     '<div class="lt-warn">Teleportation is detectable by the server</div>';
 
-  // Override back to clear interval
   const back = document.getElementById("lt-back");
   if (back) {
     back.onclick = () => {
-      if (activeRefreshId !== null) {
-        clearInterval(activeRefreshId);
-        activeRefreshId = null;
-      }
+      cleanupListeners();
       renderMainFn();
     };
   }
   bindNav(renderMainFn, pages);
-  // Re-override back after bindNav (bindNav sets it too)
   if (back) {
     back.onclick = () => {
-      if (activeRefreshId !== null) {
-        clearInterval(activeRefreshId);
-        activeRefreshId = null;
-      }
+      cleanupListeners();
       renderMainFn();
     };
   }
@@ -182,8 +368,10 @@ export function renderPlayers(
   refreshList();
   searchInput()!.oninput = () => refreshList();
 
-  activeRefreshId = setInterval(refreshList, REFRESH_INTERVAL);
+  activeRefreshId = setInterval(refreshList, FALLBACK_REFRESH);
+  activeEventHandler = () => refreshList();
+  document.addEventListener("lt:players-changed", activeEventHandler);
 
   document.getElementById("lt-players-browse")!.onclick = () =>
-    openPlayerModal(selectPlayer);
+    openPlayerModal(selectPlayer, currentTab);
 }
