@@ -1,4 +1,5 @@
 import { calculateGold, getRarity } from "./fish-rarity";
+import { queueFishForSale, flushSellQueue, updateAutoSellHUD } from "./auto-sell";
 import { saveData } from "@core/storage";
 import { log } from "@core/logger";
 
@@ -168,7 +169,7 @@ async function playMinigame(): Promise<boolean> {
 }
 
 // ── Step 4: Wait for result and dismiss modal ──
-async function waitAndDismissResult(): Promise<{ name: string; weight: number; isShiny: boolean } | null> {
+async function waitAndDismissResult(): Promise<{ id: string; name: string; weight: number; isShiny: boolean } | null> {
   const fm = getFishingManager();
   if (!fm) return null;
   const start = Date.now();
@@ -208,7 +209,7 @@ async function waitAndDismissResult(): Promise<{ name: string; weight: number; i
   }
 
   log("BOT", "[4] Fish result: " + fishData.name + " " + fishData.weight + "kg shiny=" + fishData.isShiny);
-  return { name: fishData.name || "", weight: fishData.weight || 0, isShiny: fishData.isShiny || false };
+  return { id: String(fishData.id || ""), name: fishData.name || "", weight: fishData.weight || 0, isShiny: fishData.isShiny || false };
 }
 
 // ── Main fishing loop ──
@@ -277,6 +278,14 @@ export async function fishingLoop(): Promise<void> {
       saveData("fishStats", window.__fishStats);
 
       log("BOT", "=== FISH #" + st.total + ": " + result.name + " [" + rarity.toUpperCase() + "] " + result.weight + "kg" + shinyTag + " | +" + goldEarned + "g (total: " + st.gold + "g) ===");
+
+      // ── 6. Auto-sell ──
+      if (result.id) {
+        if (queueFishForSale(result.id, result.name, result.isShiny)) {
+          const sellResult = await flushSellQueue();
+          if (sellResult) updateAutoSellHUD();
+        }
+      }
     } else {
       log("BOT", "[5] No fish data, skipping stats");
     }
