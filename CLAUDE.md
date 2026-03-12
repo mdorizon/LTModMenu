@@ -12,6 +12,10 @@ L'honnêteté prime sur la validation. Si une idée est mauvaise, le dire direct
 
 Pas de commentaires évidents ou redondants. Signaler les problèmes d'architecture ou de design détectés même si ce n'est pas demandé. Quand un fix est proposé, expliquer brièvement le pourquoi du bug, pas juste le quoi.
 
+## Debug interactif
+
+Quand un comportement runtime est inattendu (state incorrect, lock d'input, event WS pas reçu, etc.), **proposer proactivement à l'utilisateur de lancer des commandes dans la console du navigateur** pour inspecter le state en temps réel. L'utilisateur préfère cette approche plutôt que de deviner. Exemples : `window.__stores.useFocusSession.getState()`, `window.__gameGlobals`, `window.__socketClient.socket`, etc.
+
 ## MCP Chrome DevTools - Usage encadré
 
 Les outils MCP Chrome DevTools (screenshots, console, click, navigate, fill, etc.) consomment beaucoup de tokens. Avant chaque appel MCP navigateur, demande confirmation à l'utilisateur via AskUserQuestion.
