@@ -1,10 +1,11 @@
 import { log } from "@core/logger";
+import { setStatus, clearStatus } from "@ui/status-bar";
 
 let enabled = false;
 let drawnChildren: any[] = [];
 let _Graphics: any = null;
 
-export function isDebugGizmos(): boolean {
+export function isHitboxes(): boolean {
   return enabled;
 }
 
@@ -30,7 +31,7 @@ function findGraphicsClass(): any {
   return null;
 }
 
-function drawGizmos(): string | null {
+function drawHitboxes(): string | null {
   const gameApp = window.__gameApp as any;
   const container = gameApp?.gizmoContainer;
   if (!container) return "gizmoContainer not found";
@@ -96,11 +97,11 @@ function drawGizmos(): string | null {
   }
 
   container.visible = true;
-  log("DEBUG", "Drew " + total + " gizmos (red=colliders, green=interactables, blue=seats)");
+  log("DEBUG", "Drew " + total + " hitboxes (red=colliders, green=interactables, blue=seats)");
   return null;
 }
 
-function clearGizmos(): void {
+function clearHitboxes(): void {
   const container = (window.__gameApp as any)?.gizmoContainer;
   for (const child of drawnChildren) {
     container?.removeChild(child);
@@ -110,16 +111,18 @@ function clearGizmos(): void {
   if (container) container.visible = false;
 }
 
-export function toggleDebugGizmos(): { enabled: boolean; error?: string } {
+export function toggleHitboxes(): { enabled: boolean; error?: string } {
   if (!window.__gameApp) return { enabled: false, error: "gameApp not captured" };
 
   if (!enabled) {
-    const error = drawGizmos();
+    const error = drawHitboxes();
     if (error) return { enabled: false, error };
     enabled = true;
+    setStatus("hitboxes", { label: "HITBOXES", color: "#e0a040", bg: "#302010" });
   } else {
-    clearGizmos();
+    clearHitboxes();
     enabled = false;
+    clearStatus("hitboxes");
   }
 
   return { enabled };

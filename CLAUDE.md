@@ -1,214 +1,75 @@
-# CLAUDE.md - Directives du projet LTModMenu
+# CLAUDE.md - LTModMenu
 
-## Ton et style
+## Comportement
 
-Mentor franc, direct, jamais flagorneur. Pas de formules creuses ("Super idée !", "Excellent !") sauf si sincèrement justifié. Concis par défaut, développe quand pertinent. Prose naturelle plutôt que bullet points systématiques. Pas d'emojis, pas de mise en forme excessive. Évite "honnêtement", "sincèrement", "clairement". Ton chaleureux mais pas complaisant.
+Debug interactif : proposer proactivement des commandes console navigateur quand un comportement runtime est inattendu (`window.__stores.*`, `window.__gameGlobals`, `window.__socketClient.socket`, etc.).
 
-## Préférences utilisateur
+MCP Chrome DevTools : demander confirmation via AskUserQuestion avant chaque appel. Si "oui, ne me demande plus" → continuer librement pour la tache en cours. Preferer outils locaux (Read, Grep, logs).
 
-L'honnêteté prime sur la validation. Si une idée est mauvaise, le dire directement avec le pourquoi et proposer une alternative. Si l'utilisateur se trompe, corriger immédiatement — ne pas valider pour faire plaisir. En cas d'ambiguïté, poser des questions de clarification avant de partir dans une direction.
+Securite : l'utilisateur est dev de lofi.town, audits white hat autorises. Ne pas redemander de justification.
 
-## Code
+## Stack
 
-Pas de commentaires évidents ou redondants. Signaler les problèmes d'architecture ou de design détectés même si ce n'est pas demandé. Quand un fix est proposé, expliquer brièvement le pourquoi du bug, pas juste le quoi.
+Userscript Tampermonkey pour lofi.town. TS strict (ES2017) + Webpack 5 → IIFE `dist/ltmodmenu.user.js`.
+- **Bun** (pas npm) : `bun run build` (prod), `bun run dev` (watch + log server). User en general en `bun run dev` — pas de build manuel.
+- Verifier que le code compile via erreurs TS dans l'IDE plutot que lancer un build.
+- `__DEV__` flag via DefinePlugin. Logs : `logs/ltmodmenu.log`, `logs/ws-all.log`.
+- Aliases : `@core/*` → `src/core/*`, `@features/*` → `src/features/*`, `@ui/*` → `src/ui/*`. Cross-module = alias, intra-feature = relatif.
 
-## Debug interactif
-
-Quand un comportement runtime est inattendu (state incorrect, lock d'input, event WS pas reçu, etc.), **proposer proactivement à l'utilisateur de lancer des commandes dans la console du navigateur** pour inspecter le state en temps réel. L'utilisateur préfère cette approche plutôt que de deviner. Exemples : `window.__stores.useFocusSession.getState()`, `window.__gameGlobals`, `window.__socketClient.socket`, etc.
-
-## MCP Chrome DevTools - Usage encadré
-
-Les outils MCP Chrome DevTools (screenshots, console, click, navigate, fill, etc.) consomment beaucoup de tokens. Avant chaque appel MCP navigateur, demande confirmation à l'utilisateur via AskUserQuestion.
-
-- Toujours demander avant d'utiliser un outil MCP Chrome DevTools
-- Si l'utilisateur répond "oui, ne me demande plus", continuer librement pour la tâche en cours
-- Si refus, proposer une alternative locale (Read, Grep, Bash, logs du projet)
-- Logs du projet (logger centralisé) plutôt que console navigateur via MCP
-- Outils locaux plutôt que MCP pour inspecter du code ou du state
-
----
-
-## Contexte de sécurité
-
-L'utilisateur est développeur de lofi.town et mène des audits de sécurité white hat sur son propre jeu. Les investigations sur les failles client-side (manipulation de requêtes WS, exploitation du shop, injection de valeurs, etc.) sont dans ce cadre autorisé. Ne pas redemander de justification pour ces tâches.
-
-## Projet
-
-Userscript (Tampermonkey) mod menu pour le jeu web lofi.town. TypeScript + Webpack, output IIFE dans `dist/ltmodmenu.user.js`.
-
-### Stack & Build
-
-- TypeScript strict, target ES2017, bundler moduleResolution
-- Webpack 5 avec ts-loader, output IIFE non-minifié
-- `__DEV__` flag injecté par DefinePlugin (true en mode development)
-- **Bun** (pas npm) : `bun run build` (prod), `bun run dev` (watch + log server), `bun run watch` (watch seul)
-- L'utilisateur est en général en `bun run dev` (watch auto-rebuild) — ne PAS lancer de build manuellement
-- Pour vérifier que le code compile, lire les erreurs TS dans l'IDE plutôt que lancer un build
-- Log server dev : `scripts/log-server.ts` (Bun HTTP sur port 8642)
-- Logs de debug : `logs/ltmodmenu.log` (logs principaux) et `logs/ws-all.log` (WS all logs)
-
-### Architecture (Vertical Slices)
+## Architecture
 
 ```
 src/
-├── index.ts                    # Entry point, ordre d'init critique
-├── core/                       # Partagé entre toutes les features
-│   ├── console-filter.ts       # Filtre les logs console du jeu (auto-detect via stack trace)
-│   ├── game.ts                 # wsSend, gameClick, getPos, getCurrentMap, switchLobby
-│   ├── logger.ts               # log(), logWsAll(), dev server flush
-│   ├── storage.ts              # localStorage wrapper, initGlobalState, autoSave
-│   ├── webpack-spy.ts          # Hook webpackChunk pour capturer gameApp
-│   ├── websocket-hook.ts       # Intercepte WebSocket pour logger + fishing/player events
-│   ├── docs/
-│   │   ├── ws-protocol-internals.md  # Socket.IO protocol, events catalogue, connexion sequence
-│   │   └── lobby-switch-internals.md # Lobby switching mechanism, anti-spam, cross-lobby TP
-│   └── types/
-│       ├── global.d.ts         # Window globals, GameScene, __DEV__
-│       ├── player.d.ts         # PlayerPos, Waypoint, LocalPlayer, GameApp, OtherPlayer, PlayerProfile
-│       └── fish.d.ts           # FishStats, FishBiteData, FishResultData
-├── features/
-│   ├── fishing/                # Auto-fishing bot + force fishing
-│   │   ├── data/fish-database.ts
-│   │   ├── ui/fishing-view.ts  # Vue HUD (stats + start/stop + force fishing)
-│   │   ├── fishing-loop.ts     # Bot state machine (5 phases)
-│   │   ├── challenge-solver.ts # FNV-1a solver + setupFishingGlobals()
-│   │   ├── fish-rarity.ts      # calculateGold, getRarity
-│   │   ├── force-fishing.ts    # Sit + fishing animation hack
-│   │   └── docs/
-│   │       └── fishing-internals.md
-│   ├── teleport/               # TP + POI + inter-map navigation
-│   │   ├── data/poi-database.ts
-│   │   ├── ui/
-│   │   │   ├── poi-view.ts     # Vue HUD POIs
-│   │   │   └── waypoints-view.ts # Vue HUD Waypoints
-│   │   ├── teleport.ts         # doTP, doInterMapTP, initSceneCache
-│   │   └── docs/
-│   │       └── scene-internals.md
-│   ├── players/                # Liste des joueurs + TP vers joueurs + burrow visit
-│   │   ├── player-tracker.ts   # getTrackedPlayers() : fusionne gameApp.players + __playerProfiles + friendIds
-│   │   ├── data/burrow-database.ts # Constantes burrow (privacy levels, spawn, timeout)
-│   │   ├── ui/
-│   │   │   ├── players-view.ts     # Liste joueurs avec tabs All/Friends + recherche + modal grille
-│   │   │   └── player-actions-view.ts # Actions par joueur (TP, visit burrow, privacy check)
-│   │   └── docs/
-│   │       └── social-internals.md
-│   ├── missions/               # Auto-completion missions + hide panel natif
-│   │   ├── data/mission-database.ts  # Definitions statiques des 13 missions (titres, seuils, progressKeys)
-│   │   ├── ui/missions-view.ts       # Vue HUD missions (progress, force, complete all)
-│   │   ├── missions.ts               # Logique auto-completion via progressMission()
-│   │   ├── mission-panel-hide.ts     # Toggle hide du panel missions natif (CSS inject)
-│   │   └── docs/
-│   │       └── missions-internals.md
-│   └── actions/                # Actions joueur génériques
-│       ├── ui/actions-view.ts  # Vue HUD Actions (sit, noclip, speed, free camera, hitboxes)
-│       ├── sit.ts              # toggleSit state machine
-│       ├── noclip.ts           # Bypass collisions via handleCollisions passthrough
-│       ├── speed.ts            # Speed multiplier (persisté localStorage, watcher auto-reapply)
-│       ├── free-camera.ts      # Détache la caméra du joueur via GameGlobals
-│       ├── debug-gizmos.ts     # Dessine colliders/interactables/seats via PIXI.Graphics
-│       └── docs/
-│           └── player-physics-internals.md
-└── ui/                         # Shell du menu (pas de logique métier)
-    ├── hud.ts                  # Init HUD, drag, keyboard nav, retry gameApp
-    ├── main-view.ts            # Vue d'accueil avec liens
-    ├── components.ts           # mkHeader, mkItem, mkItemTag, bindNav, showTransitionOverlay
-    ├── styles.ts               # CSS injecté (thème via CSS vars, transition overlay)
-    ├── theme.ts                # Sync thème avec le site lofi.town
-    ├── data/theme-database.ts  # CSS vars mapping + couleurs par défaut
-    └── dev-tools.ts            # Toggle WS All Logs (__DEV__ only)
+  index.ts              # Entry, init critique (voir ordre ci-dessous)
+  core/                 # game.ts, logger.ts, storage.ts, webpack-spy.ts, websocket-hook.ts, console-filter.ts
+    types/              # global.d.ts, player.d.ts, fish.d.ts
+    docs/               # ws-protocol-internals.md, lobby-switch-internals.md
+  features/
+    fishing/            # fishing-loop.ts (bot FSM), challenge-solver.ts (FNV-1a), force-fishing.ts, fish-rarity.ts
+    teleport/           # teleport.ts (doTP, doInterMapTP), burrow-visit.ts, data/poi-database.ts
+    players/            # player-tracker.ts, data/burrow-database.ts
+    missions/           # missions.ts (auto-complete), mission-panel-hide.ts, data/mission-database.ts
+    actions/            # sit.ts, noclip.ts, speed.ts, free-camera.ts, hitboxes.ts
+    lobbies/            # lobby-switch.ts
+  ui/                   # hud.ts, main-view.ts, components.ts, styles.ts, status-bar.ts, theme.ts
 ```
 
-### Path Aliases
+Chaque feature a `ui/*-view.ts` (fonction `render*(hud, renderMainFn, pages)`) et optionnellement `docs/*-internals.md`.
 
-Configurés dans tsconfig.json et webpack.config.js :
-- `@core/*` → `src/core/*`
-- `@features/*` → `src/features/*`
-- `@ui/*` → `src/ui/*`
+## Init (ordre critique)
 
-Utiliser les aliases pour tous les imports cross-module. Imports intra-feature en relatif (`./`).
+1. Console filter → 2. Logger → 3. Global state → 4. Fish DB → 5. Fishing globals → 6. Speed watcher → 7. Webpack hook → 8. WS hook → 9. HUD (DOMContentLoaded)
 
-### Ordre d'initialisation (index.ts)
+## Conventions
 
-L'ordre est critique — webpack spy et WS hook doivent être installés avant que le jeu charge :
-1. Console filter (silence les logs du jeu)
-2. Logger
-3. Global state (localStorage)
-4. Fish database
-5. Fishing globals (challenge solver sur window)
-6. Speed watcher (persisté, re-apply après changement de map)
-7. Webpack chunk hook
-8. WebSocket hook
-9. HUD (après DOMContentLoaded)
+- State global : `window.__*` (gameApp, gameWS, fishStats, waypoints, playerProfiles, etc.)
+- Navigation HUD : `bindNav()` + `goMap` dans components.ts
+- Notifications : `notify(msg, type, duration)` → toasts (status-bar.ts). `duration=0` = persistant avec dots animes.
+- Status persistants : `setStatus(key, entry)` / `clearStatus(key)` → badges dans le header.
 
-### Conventions
+## Docs internes (LIRE avant de modifier le domaine)
 
-- State global via `window.__*` (gameApp, gameWS, fishStats, waypoints, playerProfiles, etc.)
-- Vues HUD : chaque vue est dans `feature/ui/*-view.ts`, fonction `render*(hud, renderMainFn, pages)`
-- Navigation : bindNav() mappe les IDs d'éléments aux pages, `goMap` dans components.ts pour les liens menu
-- Keyboard nav : touches 1-5 (toggle, up, down, click, back)
-- Le bot fishing utilise le FishingManager du jeu (gameObjects[2]) : startFishing(), miniGame(), handleMinigameClick(), win() auto, resultUI dismiss
-- Le minigame est un cadran avec un triangle rotatif : cliquer quand arrowAngle (fixe 270°) est dans la zone [rotation, rotation+thickness]
+| Domaine | Fichier |
+|---------|---------|
+| Peche | `src/features/fishing/docs/fishing-internals.md` |
+| Collision/noclip/speed | `src/features/actions/docs/player-physics-internals.md` |
+| Camera/hitboxes/PIXI | `src/features/actions/docs/camera-debug-internals.md` |
+| Social/burrows/profils | `src/features/players/docs/social-internals.md` |
+| Scenes/maps/TP | `src/features/teleport/docs/scene-internals.md` |
+| WS protocol/events | `src/core/docs/ws-protocol-internals.md` |
+| Lobby switch | `src/core/docs/lobby-switch-internals.md` |
+| Missions | `src/features/missions/docs/missions-internals.md` |
+| Exploits non implementes | `src/core/docs/game-changers.md` |
 
-### Données joueurs
+Analyses webpack du client dans `gameFiles-analysis/` (3 chunks : 493=engine, 5677=stores, page=UI+auth).
 
-- `window.__gameApp.players` : Record<string, OtherPlayer> — joueurs présents sur la map courante (positions live, direction, isBot, currentSeatId)
-- `window.__playerProfiles` : Map<string, PlayerProfile> — displayName/username, alimenté par les events WS `initOtherPlayers`, `playerJoinedRoom`, nettoyé par `playerDisconnected`/`playerLeftRoom`
-- `localPlayer` est séparé de `players`, accessible via `gameApp.localPlayer`
-- Les API REST (`/api/getFriends`, `/api/getMapData`) retournent 401 si appelees sans auth. MAIS le JWT est capturable via `useUserData.getState().accessToken` (store Zustand, module 92764) ou via le `40{}` auth dans le WS hook (`window.__wsAuthToken`). Avec le Bearer token, toutes les API sont accessibles (voir `docs/game-analysis/game-changers.md` section 3).
+## Gotchas critiques
 
-### Documentation reverse-engineered
+- `handleCollisions(delta)` retourne `{x,y}` — ne jamais nooper (crash). Noclip = `(delta) => delta`.
+- Au disable noclip : `doTP()` a la position courante sinon pushback sous la map.
+- `lp.speed` reset au changement de map (nouveau localPlayer). Le watcher `setInterval(2s)` re-applique.
+- API REST 401 sans auth. JWT via `useUserData.getState().accessToken` (module 92764) ou `window.__wsAuthToken`.
 
-Docs techniques pour l'IA sur les mecanismes internes du jeu. A LIRE avant de toucher au domaine concerne :
+## Versioning
 
-| Domaine | Fichier | Quand lire |
-|---------|---------|------------|
-| Peche (bot, minigame, WS events) | `src/features/fishing/docs/fishing-internals.md` | Toute modif fishing |
-| Physique joueur (collision, noclip, speed) | `src/features/actions/docs/player-physics-internals.md` | Toute modif mouvement/collision |
-| Camera, hitboxes, debug gizmos, PixiJS v8 | `src/features/actions/docs/camera-debug-internals.md` | Toute modif free camera, hitbox overlay, PIXI Graphics |
-| Social (amis, burrows, profils, privacy) | `src/features/players/docs/social-internals.md` | Toute modif players/friends/burrow |
-| Scenes (maps, cache, loadScene, TP) | `src/features/teleport/docs/scene-internals.md` | Toute modif teleport/scenes/maps |
-| Protocol WS (Socket.IO, events, auth, cross-map) | `src/core/docs/ws-protocol-internals.md` | Toute modif websocket-hook, ajout d'events, debug WS |
-| Lobby switch (mecanisme, anti-spam, cross-lobby TP) | `src/core/docs/lobby-switch-internals.md` | Toute modif switchLobby, cross-lobby, transition overlay |
-| Missions (store, auto-complete, progressKeys) | `src/features/missions/docs/missions-internals.md` | Toute modif missions, mission-panel-hide |
-| **Game-changers (exploits non implementes)** | `src/core/docs/game-changers.md` | Nouvelle feature, refacto webpack-spy, exploration de possibilites |
-
-### Analyses des fichiers du jeu
-
-Les chunks webpack du client ont ete analyses et les resumes sont dans `gameFiles-analysis/`. Fichiers `-skip` = libs tierces non exploitables. Les 3 fichiers exploitables :
-
-| Chunk | Contenu | Fichier analyse |
-|-------|---------|-----------------|
-| `493-*.js` | **Game engine** : App singleton, Player, FishingManager, scenes, collisions, PixiJS | `gameFiles-analysis/493-*-analysis.md` |
-| `5677-*.js` | **Stores & logique** : Zustand stores, fishing solver, HTTP client, chat commands, shop, focus | `gameFiles-analysis/5677-*-analysis.md` |
-| `page-*.js` | **Page principale** : auth, init joueur, UI React, missions, emotes, burrows, lobbies | `gameFiles-analysis/page-*-analysis.md` |
-
-Consulter ces analyses quand on a besoin de comprendre un module webpack specifique (par ID) ou de trouver de nouvelles surfaces d'attaque.
-
-### Mécanique de collision (reverse-engineered)
-
-Documentation détaillée dans `src/features/actions/docs/player-physics-internals.md`. Points clés :
-- `moveLocalPlayer(dt)` : calcule le delta de mouvement, passe dans `handleCollisions(delta)` qui retourne le delta ajusté, puis appelle `setPosition()`
-- `handleCollisions(delta)` retourne un objet `{x, y}` — **ne jamais le nooper** (crash `Cannot read .x of undefined`)
-- Noclip : `handleCollisions = (delta) => delta` (passthrough, bypass toutes les collisions)
-- `checkCollision(a, b)` : simple AABB overlap test entre deux rects
-- `checkAxisCollision(...)` : 4 args, retourne `null` quand pas de collision — ne pas remplacer
-- `lp.collider` = `{x, y, width, height}` (offset relatif au joueur)
-- `lp.speed` : vitesse de déplacement, modifiable directement. Reset au changement de map (nouveau localPlayer)
-- Au disable du noclip, TP à la position courante via `doTP()` pour éviter le pushback sous la map
-
-### Versioning & Release
-
-Source unique de verite : `package.json` → `version`. Le `banner.txt` utilise `{{version}}` remplace au build par webpack. Le README utilise un badge dynamique GitHub.
-
-Trois facons de release :
-- **Auto (labels PR)** : mettre un label `release:patch`, `release:minor` ou `release:major` sur une PR vers `main`. Au merge, le workflow `version-bump.yml` bumpe `package.json`, commit, tag, push. Le tag declenche `release.yml` (build + GitHub Release + GitHub Pages).
-- **Auto (dispatch)** : lancer le workflow "Version Bump" depuis l'onglet Actions GitHub avec le type de bump en dropdown.
-- **Manuel** : `git tag v2.3.0 && git push --tags` — declenche directement `release.yml`.
-
-Ne jamais modifier la version manuellement dans `package.json` — laisser le workflow s'en charger.
-
-### Limitations connues
-
-- Cross-map : API REST 401, mais `updateRoom` WS event donne la room de tout joueur du meme lobby (voir `ws-protocol-internals.md`)
-- Noclip + disable : nécessite un doTP pour ancrer la position sinon pushback sous la map
-- Speed : le localPlayer est recréé au changement de map, le watcher (setInterval 2s) re-applique le multiplier
+Version dans `package.json` uniquement. Ne jamais bumper manuellement — labels PR (`release:patch/minor/major`) ou dispatch workflow.

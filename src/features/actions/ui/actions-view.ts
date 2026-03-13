@@ -1,9 +1,10 @@
 import { mkHeader, bindNav, type RenderFn } from "@ui/components";
+import { notify } from "@ui/status-bar";
 import { toggleSit, isSitting } from "../sit";
 import { toggleNoclip, isNoclip } from "../noclip";
 import { getSpeedMultiplier, setSpeedMultiplier } from "../speed";
 import { toggleFreeCam, isFreeCam } from "../free-camera";
-import { toggleDebugGizmos, isDebugGizmos } from "../debug-gizmos";
+import { toggleHitboxes, isHitboxes } from "../hitboxes";
 
 export function renderActions(
   hud: HTMLElement,
@@ -18,109 +19,54 @@ export function renderActions(
     (isSitting() ? "Stand Up" : "Sit Down") +
     "</button>" +
     '<button class="lt-action ' + (isNoclip() ? "lt-danger" : "lt-primary") + '" id="lt-noclip-toggle">' +
-    (isNoclip() ? "Noclip ON" : "Noclip OFF") +
+    (isNoclip() ? "Disable Noclip" : "Enable Noclip") +
     "</button>" +
     '<button class="lt-action ' + (isFreeCam() ? "lt-danger" : "lt-primary") + '" id="lt-freecam-toggle">' +
-    (isFreeCam() ? "Free Camera ON" : "Free Camera OFF") +
+    (isFreeCam() ? "Disable Free Camera" : "Enable Free Camera") +
     "</button>" +
-    '<button class="lt-action ' + (isDebugGizmos() ? "lt-danger" : "lt-primary") + '" id="lt-gizmos-toggle">' +
-    (isDebugGizmos() ? "Show Hitboxes ON" : "Show Hitboxes OFF") +
+    '<button class="lt-action ' + (isHitboxes() ? "lt-danger" : "lt-primary") + '" id="lt-hitboxes-toggle">' +
+    (isHitboxes() ? "Hide Hitboxes" : "Show Hitboxes") +
     "</button>" +
     '<div class="lt-speed-row">' +
     '<span class="lt-speed-label">Speed: x<span id="lt-speed-val">' + speed + '</span></span>' +
     '<input type="range" class="lt-slider" id="lt-speed-slider" min="1" max="10" step="1" value="' + speed + '" />' +
     "</div>" +
     "</div>" +
-    '<div class="lt-status" id="lt-act-status"></div>' +
     '<div class="lt-warn">These actions are detectable by the server</div>';
   bindNav(renderMainFn, pages);
 
+  const showError = (msg: string) => notify(msg, "error");
+
   document.getElementById("lt-sit-toggle")!.onclick = () => {
     const result = toggleSit();
-    const toggleBtn = document.getElementById("lt-sit-toggle")!;
-    const st = document.getElementById("lt-act-status")!;
-    if (result.error) {
-      st.textContent = result.error;
-      st.style.color = "#f05050";
-      return;
-    }
-    if (result.sitting) {
-      toggleBtn.textContent = "Stand Up";
-      toggleBtn.className = "lt-action lt-muted";
-      st.textContent = "Sitting";
-      st.style.color = "#5ad85a";
-    } else {
-      toggleBtn.textContent = "Sit Down";
-      toggleBtn.className = "lt-action lt-primary";
-      st.textContent = "Standing";
-      st.style.color = "#6a6a9a";
-    }
+    if (result.error) return showError(result.error);
+    const btn = document.getElementById("lt-sit-toggle")!;
+    btn.textContent = result.sitting ? "Stand Up" : "Sit Down";
+    btn.className = "lt-action " + (result.sitting ? "lt-muted" : "lt-primary");
   };
 
   document.getElementById("lt-noclip-toggle")!.onclick = () => {
     const result = toggleNoclip();
+    if (result.error) return showError(result.error);
     const btn = document.getElementById("lt-noclip-toggle")!;
-    const st = document.getElementById("lt-act-status")!;
-    if (result.error) {
-      st.textContent = result.error;
-      st.style.color = "#f05050";
-      return;
-    }
-    if (result.enabled) {
-      btn.textContent = "Noclip ON";
-      btn.className = "lt-action lt-danger";
-      st.textContent = "Noclip enabled - walk through everything";
-      st.style.color = "#be6a6a";
-    } else {
-      btn.textContent = "Noclip OFF";
-      btn.className = "lt-action lt-primary";
-      st.textContent = "Collisions restored";
-      st.style.color = "#6a6a9a";
-    }
+    btn.textContent = result.enabled ? "Disable Noclip" : "Enable Noclip";
+    btn.className = "lt-action " + (result.enabled ? "lt-danger" : "lt-primary");
   };
 
   document.getElementById("lt-freecam-toggle")!.onclick = () => {
     const result = toggleFreeCam();
+    if (result.error) return showError(result.error);
     const btn = document.getElementById("lt-freecam-toggle")!;
-    const st = document.getElementById("lt-act-status")!;
-    if (result.error) {
-      st.textContent = result.error;
-      st.style.color = "#f05050";
-      return;
-    }
-    if (result.enabled) {
-      btn.textContent = "Free Camera ON";
-      btn.className = "lt-action lt-danger";
-      st.textContent = "Drag to explore - player stays in place";
-      st.style.color = "#be6a6a";
-    } else {
-      btn.textContent = "Free Camera OFF";
-      btn.className = "lt-action lt-primary";
-      st.textContent = "Camera reattached to player";
-      st.style.color = "#6a6a9a";
-    }
+    btn.textContent = result.enabled ? "Disable Free Camera" : "Enable Free Camera";
+    btn.className = "lt-action " + (result.enabled ? "lt-danger" : "lt-primary");
   };
 
-  document.getElementById("lt-gizmos-toggle")!.onclick = () => {
-    const result = toggleDebugGizmos();
-    const btn = document.getElementById("lt-gizmos-toggle")!;
-    const st = document.getElementById("lt-act-status")!;
-    if (result.error) {
-      st.textContent = result.error;
-      st.style.color = "#f05050";
-      return;
-    }
-    if (result.enabled) {
-      btn.textContent = "Show Hitboxes ON";
-      btn.className = "lt-action lt-danger";
-      st.textContent = "Hitboxes visible";
-      st.style.color = "#be6a6a";
-    } else {
-      btn.textContent = "Show Hitboxes OFF";
-      btn.className = "lt-action lt-primary";
-      st.textContent = "Hitboxes hidden";
-      st.style.color = "#6a6a9a";
-    }
+  document.getElementById("lt-hitboxes-toggle")!.onclick = () => {
+    const result = toggleHitboxes();
+    if (result.error) return showError(result.error);
+    const btn = document.getElementById("lt-hitboxes-toggle")!;
+    btn.textContent = result.enabled ? "Hide Hitboxes" : "Show Hitboxes";
+    btn.className = "lt-action " + (result.enabled ? "lt-danger" : "lt-primary");
   };
 
   const slider = document.getElementById("lt-speed-slider") as HTMLInputElement;
@@ -129,14 +75,7 @@ export function renderActions(
     const val = Number(slider.value);
     valLabel.textContent = String(val);
     const result = setSpeedMultiplier(val);
-    const st = document.getElementById("lt-act-status")!;
-    if (result.error) {
-      st.textContent = result.error;
-      st.style.color = "#f05050";
-    } else {
-      st.textContent = "Speed x" + result.multiplier;
-      st.style.color = result.multiplier > 1 ? "#be6a6a" : "#6a6a9a";
-    }
+    if (result.error) showError(result.error);
   };
 
 }

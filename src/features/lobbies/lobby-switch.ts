@@ -1,5 +1,6 @@
 import { switchLobby, getCurrentLobby } from "@core/game";
 import { showTransitionOverlay } from "@ui/components";
+import { notify } from "@ui/status-bar";
 import { log } from "@core/logger";
 
 const ORCHESTRATOR_URL = "https://orchestrator.lofi.town";
@@ -28,31 +29,28 @@ export function mkLobbyButton(): string {
   return '<button class="lt-action lt-primary" id="lt-lobby-least">Join least populated lobby</button>';
 }
 
-export function bindLobbyButton(statusElId: string): void {
+export function bindLobbyButton(): void {
   const btn = document.getElementById("lt-lobby-least") as HTMLButtonElement | null;
   if (!btn) return;
 
   btn.onclick = async () => {
-    const st = document.getElementById(statusElId)!;
     btn.disabled = true;
     btn.textContent = "Fetching servers...";
-    st.textContent = "";
 
     const target = await fetchLeastPopulated();
     btn.disabled = false;
     btn.textContent = "Join least populated lobby";
 
     if (!target) {
-      st.textContent = "Failed to fetch servers";
-      st.style.color = "#f05050";
+      notify("Failed to fetch servers", "error");
       return;
     }
 
     const dismissOverlay = showTransitionOverlay();
     const ok = switchLobby(target.id);
     if (ok) {
-      st.textContent = "Switching to " + target.id + " (" + target.count + "/" + SOFT_CAP + ")...";
-      st.style.color = "#5ad85a";
+      btn.disabled = true;
+      btn.textContent = "Switching to " + target.id + "...";
       log("LOBBY", "Joining least populated: " + target.id + " (" + target.count + " players)");
       const targetId = target.id;
       const start = Date.now();
@@ -60,12 +58,13 @@ export function bindLobbyButton(statusElId: string): void {
         if (window.__currentLobby === targetId || Date.now() - start > SWITCH_TIMEOUT_MS) {
           clearInterval(poll);
           dismissOverlay();
+          btn.disabled = false;
+          btn.textContent = "Join least populated lobby";
         }
       }, SWITCH_POLL_MS);
     } else {
       dismissOverlay();
-      st.textContent = "Switch failed (in progress or WS down)";
-      st.style.color = "#f05050";
+      notify("Switch failed (in progress or WS down)", "error");
     }
   };
 }

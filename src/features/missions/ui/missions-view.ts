@@ -1,4 +1,5 @@
 import { mkHeader, mkCoin, bindNav, type RenderFn } from "@ui/components";
+import { notify } from "@ui/status-bar";
 import {
   getDailyMissions,
   getWeeklyMissions,
@@ -85,7 +86,7 @@ function formatCountdown(isoEnd: string | null): string {
 
 function scheduleRefresh(hud: HTMLElement, renderMainFn: RenderFn, pages: Record<string, RenderFn>): void {
   setTimeout(() => {
-    if (document.getElementById("lt-mission-status")) {
+    if (document.getElementById("lt-mission-hide-panel")) {
       renderMissions(hud, renderMainFn, pages);
     }
   }, 1500);
@@ -146,8 +147,6 @@ export function renderMissions(
     '<button class="lt-action" id="lt-mission-hide-panel" style="margin-top:4px;">' +
     (isMissionPanelHidden() ? "Show Mission Panel" : "Hide Mission Panel") +
     "</button>" +
-
-    '<div id="lt-mission-status" class="lt-status"></div>' +
     "</div>";
 
   bindNav(renderMainFn, pages);
@@ -170,17 +169,12 @@ export function renderMissions(
     renderMissions(hud, renderMainFn, pages);
   };
 
-  const status = document.getElementById("lt-mission-status")!;
-
   const dailyBtn = document.getElementById("lt-complete-daily");
   if (dailyBtn) {
     dailyBtn.onclick = () => {
       const count = completeAllDailies();
-      status.textContent = count > 0
-        ? "Completed " + count + " daily missions!"
-        : "No daily missions to complete";
-      status.style.color = count > 0 ? "#5ad85a" : "#8a8a9a";
-      if (count > 0) scheduleRefresh(hud, renderMainFn, pages);
+      if (count === 0) notify("No daily missions to complete", "info");
+      else scheduleRefresh(hud, renderMainFn, pages);
     };
   }
 
@@ -188,11 +182,8 @@ export function renderMissions(
   if (weeklyBtn) {
     weeklyBtn.onclick = () => {
       const count = completeAllWeeklies();
-      status.textContent = count > 0
-        ? "Completed " + count + " weekly missions!"
-        : "No weekly missions to complete";
-      status.style.color = count > 0 ? "#5ad85a" : "#8a8a9a";
-      if (count > 0) scheduleRefresh(hud, renderMainFn, pages);
+      if (count === 0) notify("No weekly missions to complete", "info");
+      else scheduleRefresh(hud, renderMainFn, pages);
     };
   }
 
@@ -201,8 +192,7 @@ export function renderMissions(
     if (btn) {
       btn.onclick = () => {
         const ok = completeMission(mission, current);
-        status.textContent = ok ? "Forced: " + mission.title : "Already completed";
-        status.style.color = ok ? "#5ad85a" : "#8a8a9a";
+        if (!ok) notify("Already completed", "info");
         if (ok) scheduleRefresh(hud, renderMainFn, pages);
       };
     }
@@ -213,8 +203,7 @@ export function renderMissions(
     if (btn) {
       btn.onclick = () => {
         const ok = completeMission(mission, current);
-        status.textContent = ok ? "Forced: " + mission.title : "Already completed";
-        status.style.color = ok ? "#5ad85a" : "#8a8a9a";
+        if (!ok) notify("Already completed", "info");
         if (ok) scheduleRefresh(hud, renderMainFn, pages);
       };
     }

@@ -51,6 +51,7 @@ export interface SocketClient {
 
 declare global {
   const __DEV__: boolean;
+  const __VERSION__: string;
 
   interface Window {
     __gameWS: WebSocket | null;

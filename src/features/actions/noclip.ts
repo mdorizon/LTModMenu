@@ -1,5 +1,6 @@
 import { log } from "@core/logger";
 import { doTP } from "@features/teleport/teleport";
+import { setStatus, clearStatus } from "@ui/status-bar";
 
 let enabled = false;
 let origHandleCollisions: ((delta: { x: number; y: number }) => { x: number; y: number }) | null = null;
@@ -18,6 +19,7 @@ export function toggleNoclip(): { enabled: boolean; error?: string } {
     }
     lp.handleCollisions = (delta: { x: number; y: number }) => delta;
     enabled = true;
+    setStatus("noclip", { label: "NOCLIP", color: "#f07070", bg: "#3a1a1a" });
     log("NOCLIP", "Enabled");
   } else {
     const x = Math.round(lp.currentPos.x);
@@ -26,6 +28,7 @@ export function toggleNoclip(): { enabled: boolean; error?: string } {
     if (origHandleCollisions) lp.handleCollisions = origHandleCollisions;
     doTP(x, y, dir);
     enabled = false;
+    clearStatus("noclip");
     log("NOCLIP", "Disabled, anchored at " + x + "," + y);
   }
 
