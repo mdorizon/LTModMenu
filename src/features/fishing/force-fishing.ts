@@ -2,6 +2,7 @@ import { wsSend, getCurrentMap } from "@core/game";
 import { log } from "@core/logger";
 import { saveData, loadData } from "@core/storage";
 import { showModal } from "@ui/modal";
+import { setStatus, clearStatus } from "@ui/status-bar";
 import { FISHING_SEAT_IDS } from "./data/fishing-seats";
 
 function pickFishingSeat(): string {
@@ -55,6 +56,7 @@ export function cleanupFishingRod(): void {
     fishingCleanupInterval = null;
   }
   forceFishingActive = false;
+  clearStatus("force-fishing");
   syncButton();
 }
 
@@ -74,6 +76,7 @@ function activate(): void {
   if (!app?.localPlayer) return;
 
   forceFishingActive = true;
+  setStatus("force-fishing", { label: "FORCE FISH", color: "#e070b0", bg: "#3a1a2a" });
   syncButton();
 
   const lp = app.localPlayer;

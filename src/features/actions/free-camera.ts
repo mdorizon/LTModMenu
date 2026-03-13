@@ -1,4 +1,5 @@
 import { log } from "@core/logger";
+import { setStatus, clearStatus } from "@ui/status-bar";
 
 let enabled = false;
 
@@ -14,6 +15,7 @@ export function toggleFreeCam(): { enabled: boolean; error?: string } {
     globals.manualCameraControl = true;
     globals.dragCameraMode = true;
     enabled = true;
+    setStatus("freecam", { label: "FREE CAM", color: "#b080e0", bg: "#2a1a3a" });
     log("CAMERA", "Free camera enabled");
   } else {
     globals.manualCameraControl = false;
@@ -21,6 +23,7 @@ export function toggleFreeCam(): { enabled: boolean; error?: string } {
     const cam = window.__gameApp?.currentCamera;
     if (cam?.moveCameraToPlayer) cam.moveCameraToPlayer(true);
     enabled = false;
+    clearStatus("freecam");
     log("CAMERA", "Free camera disabled");
   }
 

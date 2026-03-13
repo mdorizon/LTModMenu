@@ -2,6 +2,7 @@ import { calculateGold, getRarity } from "./fish-rarity";
 import { queueFishForSale, flushSellQueue, updateAutoSellHUD } from "./auto-sell";
 import { saveData } from "@core/storage";
 import { log } from "@core/logger";
+import { setStatus, clearStatus } from "@ui/status-bar";
 
 let fishingLoopRunning = false;
 
@@ -20,6 +21,7 @@ export function isFishingLoopRunning(): boolean {
 
 export function stopFishingLoop(): void {
   fishingLoopRunning = false;
+  clearStatus("fishing-bot");
   log("BOT", "=== FISHING LOOP STOPPED ===");
 
   // Clean up FishingManager state to avoid getting stuck
@@ -219,6 +221,7 @@ export async function fishingLoop(): Promise<void> {
     return;
   }
   fishingLoopRunning = true;
+  setStatus("fishing-bot", { label: "FISHING", color: "#6abe6a", bg: "#1a3a1a" });
   log("BOT", "=== FISHING LOOP STARTED ===");
 
   while (fishingLoopRunning) {
