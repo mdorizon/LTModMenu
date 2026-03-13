@@ -51,6 +51,7 @@ ${code}
 
 module.exports = (env, argv) => {
   const isDev = argv.mode === "development";
+  const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, "package.json"), "utf-8"));
 
   return {
     entry: "./src/index.ts",
@@ -85,6 +86,7 @@ module.exports = (env, argv) => {
     plugins: [
       new webpack.DefinePlugin({
         __DEV__: JSON.stringify(isDev),
+        __VERSION__: JSON.stringify(pkg.version),
       }),
       new PrependBannerPlugin(),
     ],

@@ -12,7 +12,7 @@ export function renderMain(
   pages: Record<string, RenderFn>,
 ): void {
   hud.innerHTML =
-    mkHeader("LTModMenu") +
+    mkHeader("LTModMenu", false, "v" + __VERSION__) +
     '<div class="lt-body">' +
     mkItemTag("lt-go-poi", "POIs", "DETECTABLE") +
     mkItemTag("lt-go-tp", "Waypoints", "DETECTABLE") +

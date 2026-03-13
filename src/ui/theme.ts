@@ -1,4 +1,5 @@
 import { SITE_VARS, DEFAULT_COLORS, darken } from "./data/theme-database";
+import { refreshToastTheme } from "./status-bar";
 import { log } from "@core/logger";
 
 let lastApplied = "";
@@ -43,6 +44,7 @@ function applyThemeFromSite(): void {
   hud.style.setProperty("--lt-accent", icon || accentHover || primary);
   hud.style.setProperty("--lt-shadow", "rgba(0,0,0,0.5)");
 
+  refreshToastTheme();
   log("THEME", "Theme synced from site (primary: " + primary + ")");
 }
 
@@ -62,6 +64,7 @@ function applyDefault(): void {
   hud.style.setProperty("--lt-accent", c.accent);
   hud.style.setProperty("--lt-shadow", c.shadow);
 
+  refreshToastTheme();
   log("THEME", "Theme applied: Default (fallback)");
 }
 

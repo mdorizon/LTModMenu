@@ -1,9 +1,14 @@
-export function mkHeader(title: string, hasBack?: boolean): string {
+import { getStatusBarHTML } from "./status-bar";
+
+export function mkHeader(title: string, hasBack?: boolean, subtitle?: string): string {
   return (
     '<div class="lt-header" id="lt-header">' +
     (hasBack ? '<button class="lt-back-btn" id="lt-back">&lt;</button>' : "") +
+    '<div class="lt-title-group">' +
     '<span class="lt-title">' + title + "</span>" +
-    '<span class="lt-ver">v2.2</span>' +
+    (subtitle ? '<span class="lt-ver">' + subtitle + "</span>" : "") +
+    "</div>" +
+    getStatusBarHTML() +
     "</div>"
   );
 }
