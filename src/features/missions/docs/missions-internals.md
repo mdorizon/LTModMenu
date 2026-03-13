@@ -80,7 +80,73 @@ state.progressMission(mission.progressKey, remaining);
 `progressMission` passe par le flow normal du jeu (Zustand action → update state → sync serveur).
 Pas besoin d'appeler d'API REST. Le store gere la persistence cote serveur.
 
-Alternative non utilisee : `POST /api/progressMission` avec Bearer token. Plus risque (log serveur explicite), meme resultat.
+**Important** : `progressMission` retourne une `Promise` — c'est un appel REST asynchrone, pas une simple mutation Zustand locale. Le serveur est autoritatif sur la progression.
+
+Alternative non utilisee : `POST /api/progressMission` avec Bearer token directement. Meme validation serveur, aucun avantage.
+
+## Exploits testes et fermes (2026-03-13)
+
+Tous les vecteurs ci-dessous ont ete testes en console. Aucun ne permet de farm des coins au-dela des missions du set actif.
+
+### 1. Delta negatif (reset une mission completee)
+
+```js
+state.progressMission("catch-fish", -10)  // Promise fulfilled, mais...
+// → Apres reload : progress revient a la valeur serveur (10/10)
+```
+
+Le serveur ignore les deltas negatifs ou clamp a la valeur courante. Pas de decrement possible.
+
+### 2. Mutation directe du state Zustand
+
+```js
+const prog = { ...state.dailyMissionProgress };
+prog["catch-10-fish"] = 0;
+store.setState({ dailyMissionProgress: prog });
+// → Changement visuel local uniquement. Reload restore les valeurs serveur.
+```
+
+Purement cosmetique. Le serveur ne recoit rien, il fait autorite au prochain fetch.
+
+### 3. Progress hors-set actif (pre-farming)
+
+```js
+// "pomodoro-complete" n'est pas dans le set daily actuel
+state.progressMission("pomodoro-complete", 2)  // Promise fulfilled, mais...
+// → dailyMissionProgress ne contient aucune entree pour "complete-2-pomodoros"
+```
+
+Le serveur verifie l'appartenance au set actif. Pas de pre-farming de missions futures.
+
+### 4. Race condition (spam concurrent pour doubler les rewards)
+
+```js
+// 20 appels concurrents sur une mission a 0/10, compte de test a 3000 points
+const promises = Array.from({ length: 20 }, () =>
+  state.progressMission("catch-fish", 10)
+);
+await Promise.all(promises);
+// → Points AFTER: 3550. Gain: 550 (exactement 1x la reward)
+// → Progress: {catch-10-fish: 10}
+```
+
+Le serveur ne credite la reward qu'une seule fois malgre 20 appels concurrents. Lock ou check idempotent cote serveur.
+
+### 5. Vecteurs non testes (probablement fermes)
+
+- **REST direct** (`POST /api/progressMission` avec payload custom) : meme validation serveur que via le store
+- **Overflow** (montant enorme) : completerait la mission plus vite, mais c'est ce qu'on fait deja avec `remaining`
+
+### Conclusion
+
+Le systeme de missions est bien protege cote serveur. La seule exploitation viable reste l'auto-completion des missions du set actif (ce que fait notre feature). Pas de farm infini, pas de reset, pas de hors-set, pas de double reward.
+
+### Store points
+
+Les points (coins) du joueur sont dans `useUserData` :
+```js
+window.__stores.useUserData.getState().points  // ex: 36095
+```
 
 ## Confetti
 
