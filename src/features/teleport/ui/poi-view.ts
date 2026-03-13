@@ -1,6 +1,7 @@
 import { mkHeader, mkItem, mkActionSelect, bindNav, type RenderFn } from "@ui/components";
 import { doInterMapTP } from "../teleport";
 import { mkLobbyButton, bindLobbyButton } from "@features/lobbies/lobby-switch";
+import { notify } from "@ui/status-bar";
 import { POI_DATA } from "../data/poi-database";
 import { getOwnBurrows, getPreferredBurrowId, setPreferredBurrowId, visitOwnBurrow } from "../burrow-visit";
 
@@ -40,19 +41,16 @@ export function renderPOI(
     mkGoHome() +
     '<div class="lt-sep"></div>' +
     items +
-    "</div>" +
-    '<div class="lt-status" id="lt-poi-status"></div>';
+    "</div>";
   bindNav(renderMainFn, pages);
-  bindLobbyButton("lt-poi-status");
+  bindLobbyButton();
 
   const goHomeEl = document.getElementById("lt-go-home");
   if (goHomeEl) {
     goHomeEl.onclick = () => {
-      const st = document.getElementById("lt-poi-status")!;
       const select = document.getElementById("lt-burrow-select") as HTMLSelectElement | null;
       const result = visitOwnBurrow(select?.value || undefined);
-      st.textContent = result.message;
-      st.style.color = result.success ? "#5ad85a" : "#f05050";
+      if (!result.success) notify(result.message, "error");
     };
   }
 
@@ -65,11 +63,7 @@ export function renderPOI(
   POI_DATA.forEach((p, i) => {
     document.getElementById("lt-poi-" + i)!.onclick = () => {
       const result = doInterMapTP(p.x, p.y, p.direction || "down", p.map);
-      const st = document.getElementById("lt-poi-status")!;
-      st.textContent = result.success
-        ? "Teleported to " + p.name
-        : result.message;
-      st.style.color = result.success ? "#5ad85a" : "#f05050";
+      if (!result.success) notify(result.message, "error");
     };
   });
 }

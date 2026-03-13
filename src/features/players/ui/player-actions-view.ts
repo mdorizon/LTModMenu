@@ -1,4 +1,5 @@
 import { mkHeader, bindNav, showTransitionOverlay, type RenderFn } from "@ui/components";
+import { notify } from "@ui/status-bar";
 import { doTP, doInterMapTP } from "@features/teleport/teleport";
 import { visitBurrow } from "@features/teleport/burrow-visit";
 import { log } from "@core/logger";
@@ -76,7 +77,6 @@ export function renderPlayerActions(
     burrowLabel +
     "</button>" +
     "</div>" +
-    '<div class="lt-status" id="lt-player-status"></div>' +
     '<div class="lt-warn">Teleportation is detectable by the server</div>';
 
   bindNav(renderMainFn, pages);
@@ -84,17 +84,13 @@ export function renderPlayerActions(
   if (back) back.onclick = () => pages.players();
 
   document.getElementById("lt-tp-to-player")!.onclick = () => {
-    const st = document.getElementById("lt-player-status")!;
-
     if (isCrossLobby) {
       const ok = switchLobby(friendLobby);
       if (!ok) {
-        st.textContent = "Error: WebSocket not ready";
-        st.style.color = "#f05050";
+        notify("Error: WebSocket not ready", "error");
         return;
       }
-      st.textContent = "Switching to " + friendLobby + "...";
-      st.style.color = "#c8c0e0";
+      notify("Switching to " + friendLobby + "...", "info", 0);
       const dismissOverlay = showTransitionOverlay();
 
       const friendId = player.id;
@@ -109,23 +105,18 @@ export function renderPlayerActions(
 
       const poll = setInterval(() => {
         const elapsed = Date.now() - start;
-        const stEl = document.getElementById("lt-player-status");
-        if (!stEl || elapsed > SWITCH_TIMEOUT_MS) {
+        const stillOnPage = !!document.getElementById("lt-tp-to-player");
+        if (!stillOnPage || elapsed > SWITCH_TIMEOUT_MS) {
           clearInterval(poll);
           fadeOut();
-          if (stEl) {
-            stEl.textContent = elapsed > SWITCH_TIMEOUT_MS
-              ? "Joined " + friendLobby + " — couldn't locate " + friendName
-              : "";
-            stEl.style.color = "#c8c0e0";
+          if (stillOnPage && elapsed > SWITCH_TIMEOUT_MS) {
+            notify("Joined " + friendLobby + " — couldn't locate " + friendName, "info");
           }
           return;
         }
 
-        // Step 1: wait for lobby connection
         if (window.__currentLobby !== friendLobby) return;
 
-        // Step 2: friend on current map? → TP directly
         const app = window.__gameApp;
         const live = app?.players?.[friendId];
         if (live) {
@@ -135,12 +126,9 @@ export function renderPlayerActions(
           const dir = live.direction || "left";
           doTP(x, y, dir);
           fadeOut();
-          stEl.textContent = "Teleported to " + friendName + " (" + x + ", " + y + ")";
-          stEl.style.color = "#5ad85a";
           return;
         }
 
-        // Step 3: know their room? → navigate there (once)
         if (!navigated) {
           const room = window.__playerRooms.get(friendId);
           if (room) {
@@ -150,18 +138,17 @@ export function renderPlayerActions(
               const burrowId = room.split(":")[1];
               const template = player.activeBurrow?.template || "burrow-1";
               visitBurrow(burrowId, template, friendId);
-              stEl.textContent = "Joining " + friendName + "'s burrow...";
+              notify("Joining " + friendName + "'s burrow...", "info", 0);
             } else {
               const cached = window.__sceneCache?.get(room);
               const spawn = cached?.fastTravelSpawnPosition || FALLBACK_SPAWN;
               log("TP", "Cross-lobby follow → room=" + room);
               doInterMapTP(spawn.x, spawn.y, spawn.direction, room);
-              stEl.textContent = "Navigating to " + room + "...";
+              notify("Navigating to " + room + "...", "info", 0);
             }
-            stEl.style.color = "#c8c0e0";
           } else if (!app?.loadingScene) {
             fadeOut();
-            stEl.textContent = "Connected to " + friendLobby + " — locating " + friendName + "...";
+            notify("Connected to " + friendLobby + " — locating " + friendName + "...", "info", 0);
           }
         }
       }, SWITCH_POLL_MS);
@@ -173,16 +160,13 @@ export function renderPlayerActions(
         const burrowId = playerRoom.split(":")[1];
         const template = player.activeBurrow?.template || "burrow-1";
         const result = visitBurrow(burrowId, template, player.id);
-        st.textContent = result.success ? "Joining " + player.displayName + "'s room..." : result.message;
-        st.style.color = result.success ? "#5ad85a" : "#f05050";
+        if (!result.success) notify(result.message, "error");
       } else {
-        // Regular map: use doInterMapTP with default spawn
         const cached = window.__sceneCache?.get(playerRoom);
         const spawn = cached?.fastTravelSpawnPosition || FALLBACK_SPAWN;
         log("TP", "Following " + player.displayName + " to room=" + playerRoom);
         const result = doInterMapTP(spawn.x, spawn.y, spawn.direction, playerRoom);
-        st.textContent = result.message;
-        st.style.color = result.success ? "#5ad85a" : "#f05050";
+        if (!result.success) notify(result.message, "error");
       }
       return;
     }
@@ -201,23 +185,13 @@ export function renderPlayerActions(
     }
 
     const ok = doTP(x, y, dir);
-    if (ok) {
-      st.textContent =
-        "Teleported near " + player.displayName + " (" + x + ", " + y + ")";
-      if (seatId) st.textContent += " (seated, offset applied)";
-      st.style.color = "#5ad85a";
-    } else {
-      st.textContent = "Error: gameApp not captured";
-      st.style.color = "#f05050";
-    }
+    if (!ok) notify("Error: gameApp not captured", "error");
   };
 
   if (canVisit) {
     document.getElementById("lt-visit-burrow")!.onclick = () => {
-      const st = document.getElementById("lt-player-status")!;
       const result = visitBurrow(burrow!.id, burrow!.template, player.id);
-      st.textContent = result.success ? "Joining " + player.displayName + "'s burrow..." : result.message;
-      st.style.color = result.success ? "#5ad85a" : "#f05050";
+      if (!result.success) notify(result.message, "error");
     };
   }
 }
