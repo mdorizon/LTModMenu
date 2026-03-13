@@ -53,6 +53,18 @@ declare global {
   const __DEV__: boolean;
   const __VERSION__: string;
 
+  class Howl {
+    _src?: string;
+    _ltName?: string;
+    play(id?: number): number;
+    rate(rate?: number): this | number;
+    volume(vol?: number): this | number;
+  }
+
+  const Howler: {
+    _howls: Howl[];
+  };
+
   interface Window {
     __gameWS: WebSocket | null;
     __gameApp: GameApp | null;
