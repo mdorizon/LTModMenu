@@ -26,6 +26,21 @@ export function mkItemTag(id: string, label: string, tag: string): string {
   );
 }
 
+export interface SelectOption { value: string; label: string; selected?: boolean }
+
+export function mkActionSelect(id: string, label: string, selectId: string, options: SelectOption[]): string {
+  let opts = "";
+  for (const o of options) {
+    opts += '<option value="' + o.value + '"' + (o.selected ? " selected" : "") + ">" + o.label + "</option>";
+  }
+  return (
+    '<div class="lt-action lt-primary lt-action-select" id="' + id + '">' +
+    "<span>" + label + "</span>" +
+    '<select class="lt-action-sel" id="' + selectId + '">' + opts + "</select>" +
+    "</div>"
+  );
+}
+
 export function showTransitionOverlay(): () => void {
   let el = document.getElementById("lt-transition");
   if (!el) {

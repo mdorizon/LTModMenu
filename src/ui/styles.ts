@@ -113,6 +113,11 @@ export const CSS = [
   "  background:var(--lt-border, #3a3a6a);outline:none;cursor:pointer; }",
   "#lt-hud .lt-slider::-webkit-slider-thumb { -webkit-appearance:none;appearance:none;width:16px;height:16px;",
   "  border-radius:50%;background:var(--lt-accent, #8a8abe);border:2px solid var(--lt-border-light, #4a4a7a);cursor:pointer; }",
+  "#lt-hud .lt-action-select { display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px; }",
+  "#lt-hud .lt-action-sel { background:none;border:1px solid var(--lt-border-light, #4a4a7a);",
+  "  border-radius:4px;color:var(--lt-text-muted, #6a6a9a);font-size:14px;font-family:inherit;padding:2px 6px;cursor:pointer; }",
+  "#lt-hud .lt-action-sel:focus { border-color:var(--lt-accent, #6a6abe); }",
+  "#lt-hud .lt-action-select:hover .lt-action-sel { border-color:var(--lt-border, #5a5a8a); }",
   "#lt-transition { position:fixed;inset:0;z-index:999998;background:#000;opacity:0;pointer-events:none;transition:opacity 0.4s ease; }",
   "#lt-transition.lt-fade-in { opacity:1;pointer-events:all; }",
 ].join(" ");
