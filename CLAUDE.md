@@ -92,6 +92,13 @@ src/
 │   │   │   └── player-actions-view.ts # Actions par joueur (TP, visit burrow, privacy check)
 │   │   └── docs/
 │   │       └── social-internals.md
+│   ├── missions/               # Auto-completion missions + hide panel natif
+│   │   ├── data/mission-database.ts  # Definitions statiques des 13 missions (titres, seuils, progressKeys)
+│   │   ├── ui/missions-view.ts       # Vue HUD missions (progress, force, complete all)
+│   │   ├── missions.ts               # Logique auto-completion via progressMission()
+│   │   ├── mission-panel-hide.ts     # Toggle hide du panel missions natif (CSS inject)
+│   │   └── docs/
+│   │       └── missions-internals.md
 │   └── actions/                # Actions joueur génériques
 │       ├── ui/actions-view.ts  # Vue HUD Actions (sit, noclip, speed, free camera, hitboxes)
 │       ├── sit.ts              # toggleSit state machine
@@ -162,6 +169,7 @@ Docs techniques pour l'IA sur les mecanismes internes du jeu. A LIRE avant de to
 | Scenes (maps, cache, loadScene, TP) | `src/features/teleport/docs/scene-internals.md` | Toute modif teleport/scenes/maps |
 | Protocol WS (Socket.IO, events, auth, cross-map) | `src/core/docs/ws-protocol-internals.md` | Toute modif websocket-hook, ajout d'events, debug WS |
 | Lobby switch (mecanisme, anti-spam, cross-lobby TP) | `src/core/docs/lobby-switch-internals.md` | Toute modif switchLobby, cross-lobby, transition overlay |
+| Missions (store, auto-complete, progressKeys) | `src/features/missions/docs/missions-internals.md` | Toute modif missions, mission-panel-hide |
 | **Game-changers (exploits non implementes)** | `src/core/docs/game-changers.md` | Nouvelle feature, refacto webpack-spy, exploration de possibilites |
 
 ### Analyses des fichiers du jeu
