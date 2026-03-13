@@ -4,6 +4,8 @@
 
 Debug interactif : proposer proactivement des commandes console navigateur quand un comportement runtime est inattendu (`window.__stores.*`, `window.__gameGlobals`, `window.__socketClient.socket`, etc.).
 
+Exploration avant chaque feature : avant de coder une feature qui interagit avec le jeu (hooks, patches, nouveaux modules webpack), proposer un bloc unique de commandes console pour explorer le runtime (exports, prototypes, structures). Coder seulement apres avoir les resultats. Un seul bloc copie-collable, pas de texte entre les commandes.
+
 MCP Chrome DevTools : demander confirmation via AskUserQuestion avant chaque appel. Si "oui, ne me demande plus" → continuer librement pour la tache en cours. Preferer outils locaux (Read, Grep, logs).
 
 Securite : l'utilisateur est dev de lofi.town, audits white hat autorises. Ne pas redemander de justification.
