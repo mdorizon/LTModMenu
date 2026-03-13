@@ -1,15 +1,13 @@
 import { mkHeader, bindNav, showTransitionOverlay, type RenderFn } from "@ui/components";
 import { doTP, doInterMapTP } from "@features/teleport/teleport";
+import { visitBurrow } from "@features/teleport/burrow-visit";
 import { log } from "@core/logger";
 import { getCurrentLobby, switchLobby } from "@core/game";
 import type { TrackedPlayer } from "../player-tracker";
 import {
   PRIVACY_PUBLIC,
   PRIVACY_FRIENDS,
-  BURROW_SPAWN_OFFSET_X,
   FALLBACK_SPAWN,
-  FALLBACK_SCENE,
-  JOIN_TIMEOUT_MS,
 } from "../data/burrow-database";
 
 const SEAT_OFFSET = 10;
@@ -149,19 +147,9 @@ export function renderPlayerActions(
             navigated = true;
             fadeOut();
             if (room.startsWith("burrow:")) {
-              const parts = room.split(":");
-              const burrowId = parts[1];
-              const subRoom = parseInt(parts[2] || "0", 10);
+              const burrowId = room.split(":")[1];
               const template = player.activeBurrow?.template || "burrow-1";
-              const cached = window.__sceneCache?.get(template);
-              const scene = cached || { name: template, ...FALLBACK_SCENE };
-              const spawn = scene.fastTravelSpawnPosition || FALLBACK_SPAWN;
-              log("BURROW", "Cross-lobby follow → burrow=" + burrowId);
-              app?.loadScene?.({
-                scene,
-                burrow: { id: burrowId, subRoom },
-                position: { x: spawn.x + BURROW_SPAWN_OFFSET_X, y: spawn.y, direction: spawn.direction },
-              });
+              visitBurrow(burrowId, template, friendId);
               stEl.textContent = "Joining " + friendName + "'s burrow...";
             } else {
               const cached = window.__sceneCache?.get(room);
@@ -182,28 +170,11 @@ export function renderPlayerActions(
 
     if (isSameLobbyDiffRoom) {
       if (playerRoom.startsWith("burrow:")) {
-        // Burrow visit: extract burrow ID from room string "burrow:<uuid>:<subRoom>"
-        const parts = playerRoom.split(":");
-        const burrowId = parts[1];
-        const subRoom = parseInt(parts[2] || "0", 10);
-        const app = window.__gameApp;
-        if (!app?.loadScene) {
-          st.textContent = "Error: gameApp not captured";
-          st.style.color = "#f05050";
-          return;
-        }
+        const burrowId = playerRoom.split(":")[1];
         const template = player.activeBurrow?.template || "burrow-1";
-        const cached = window.__sceneCache?.get(template);
-        const scene = cached || { name: template, ...FALLBACK_SCENE };
-        const spawn = scene.fastTravelSpawnPosition || FALLBACK_SPAWN;
-        log("BURROW", "Following " + player.displayName + " to burrow=" + burrowId + " room=" + playerRoom);
-        app.loadScene({
-          scene,
-          burrow: { id: burrowId, subRoom },
-          position: { x: spawn.x + BURROW_SPAWN_OFFSET_X, y: spawn.y, direction: spawn.direction },
-        });
-        st.textContent = "Joining " + player.displayName + "'s room...";
-        st.style.color = "#5ad85a";
+        const result = visitBurrow(burrowId, template, player.id);
+        st.textContent = result.success ? "Joining " + player.displayName + "'s room..." : result.message;
+        st.style.color = result.success ? "#5ad85a" : "#f05050";
       } else {
         // Regular map: use doInterMapTP with default spawn
         const cached = window.__sceneCache?.get(playerRoom);
@@ -243,52 +214,10 @@ export function renderPlayerActions(
 
   if (canVisit) {
     document.getElementById("lt-visit-burrow")!.onclick = () => {
-      const app = window.__gameApp;
       const st = document.getElementById("lt-player-status")!;
-      if (!app?.loadScene) {
-        st.textContent = "Error: gameApp not captured";
-        st.style.color = "#f05050";
-        return;
-      }
-
-      const template = burrow!.template;
-      const cached = window.__sceneCache?.get(template);
-      const scene = cached || { name: template, ...FALLBACK_SCENE };
-
-      log("BURROW", "Visiting " + player.displayName + " burrow=" + burrow!.id + " template=" + template + " cached=" + !!cached);
-
-      const spawn = scene.fastTravelSpawnPosition || FALLBACK_SPAWN;
-      app.loadScene({
-        scene,
-        burrow: { id: burrow!.id, subRoom: 0 },
-        position: { x: spawn.x + BURROW_SPAWN_OFFSET_X, y: spawn.y, direction: spawn.direction },
-      });
-
-      st.textContent = "Joining " + player.displayName + "'s burrow...";
-      st.style.color = "#5ad85a";
-
-      const expectedRoom = "burrow:" + burrow!.id + ":0";
-      const timeout = setTimeout(() => {
-        const currentRoom = app.currentServerRoomId;
-        if (currentRoom === expectedRoom) return;
-        log("BURROW", "Timeout: server did not confirm join (current=" + currentRoom + " expected=" + expectedRoom + "), recovering");
-        st.textContent = "Failed to join burrow";
-        st.style.color = "#f05050";
-        if (app.backToMainScene) {
-          app.backToMainScene();
-        }
-      }, JOIN_TIMEOUT_MS);
-
-      const ws = window.__gameWS;
-      if (ws) {
-        const onMsg = (e: MessageEvent) => {
-          if (typeof e.data === "string" && e.data.includes(expectedRoom)) {
-            clearTimeout(timeout);
-            ws.removeEventListener("message", onMsg);
-          }
-        };
-        ws.addEventListener("message", onMsg);
-      }
+      const result = visitBurrow(burrow!.id, burrow!.template, player.id);
+      st.textContent = result.success ? "Joining " + player.displayName + "'s burrow..." : result.message;
+      st.style.color = result.success ? "#5ad85a" : "#f05050";
     };
   }
 }

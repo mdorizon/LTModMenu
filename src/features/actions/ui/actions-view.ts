@@ -138,4 +138,5 @@ export function renderActions(
       st.style.color = result.multiplier > 1 ? "#be6a6a" : "#6a6a9a";
     }
   };
+
 }

@@ -154,7 +154,23 @@ Valeurs viennent du champ `activeBurrow.privacyLevel` dans le profil du joueur.
 
 ### Visiter un burrow
 
-Pas de message WS explicite type "visitBurrow". Le mecanisme repose sur `loadScene` :
+#### Methode principale : signal natif `visitBurrow`
+
+Le jeu expose un signal bus via `window.__gameGlobals.signal` qui gere nativement les visites de burrow :
+
+```js
+window.__gameGlobals.signal.emit("visitBurrow", {
+  burrowId: "uuid",
+  template: "burrow-1",    // template de scene du burrow
+  ownerId: "discordId"     // ID du proprietaire du burrow
+});
+```
+
+Le signal gere tout en interne : chargement de la scene, positionnement du joueur, connexion a la room serveur, gestion des erreurs. C'est le meme mecanisme que le jeu utilise quand on clique "Visit" dans l'interface native.
+
+#### Fallback : `loadScene` manuel
+
+Si `window.__gameGlobals.signal` n'est pas disponible (capture ratee, timing), fallback sur `loadScene` :
 
 ```js
 app.loadScene({
@@ -173,6 +189,16 @@ Le `loadScene` cote client :
 2. Envoie un `joinRoom` WS au serveur avec le room ID du burrow
 3. Le serveur repond (ou non) avec un `updateRoom` confirmant le changement
 
+Cette methode necessite de gerer manuellement le spawn offset, le timeout, et le recovery — le signal natif est toujours prefere.
+
+#### Implementation centralisee
+
+Toute la logique de visite est dans `src/features/teleport/burrow-visit.ts` :
+- `visitBurrow(burrowId, template, ownerId)` — visite generique (signal > loadScene fallback)
+- `visitOwnBurrow(burrowId?)` — visite de son propre burrow avec resolution de preference
+- `getOwnBurrows()` — liste les burrows du joueur local via `useUserData` store
+- `getPreferredBurrowId()` / `setPreferredBurrowId()` — persistence localStorage du burrow prefere
+
 ### Format des room IDs burrow
 
 ```
@@ -182,7 +208,9 @@ Le `loadScene` cote client :
 
 `subRoom` est toujours `0` pour les burrows standards. Pas de sous-rooms observees.
 
-### Confirmation et timeout
+### Confirmation et timeout (fallback loadScene uniquement)
+
+Applicable seulement quand le fallback `loadScene` est utilise (le signal natif gere ca en interne).
 
 Le serveur peut silencieusement ignorer le `joinRoom` si :
 - Le burrow n'existe pas

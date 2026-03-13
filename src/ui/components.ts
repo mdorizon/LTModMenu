@@ -26,6 +26,21 @@ export function mkItemTag(id: string, label: string, tag: string): string {
   );
 }
 
+export interface SelectOption { value: string; label: string; selected?: boolean }
+
+export function mkActionSelect(id: string, label: string, selectId: string, options: SelectOption[]): string {
+  let opts = "";
+  for (const o of options) {
+    opts += '<option value="' + o.value + '"' + (o.selected ? " selected" : "") + ">" + o.label + "</option>";
+  }
+  return (
+    '<div class="lt-action lt-primary lt-action-select" id="' + id + '">' +
+    "<span>" + label + "</span>" +
+    '<select class="lt-action-sel" id="' + selectId + '">' + opts + "</select>" +
+    "</div>"
+  );
+}
+
 const COIN_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256" style="vertical-align:-2px;">' +
   '<path d="M184,89.57V84c0-25.08-37.83-44-88-44S8,58.92,8,84v40c0,20.89,26.25,37.49,64,42.46V172c0,25.08,37.83,44,88,44s88-18.92,88-44V132C248,111.3,222.58,94.68,184,89.57Z' +
   'M56,146.87C36.41,141.4,24,132.39,24,124V109.93c8.16,5.78,19.09,10.44,32,13.57Zm80-23.37c12.91-3.13,23.84-7.79,32-13.57V124c0,8.39-12.41,17.4-32,22.87Z' +
