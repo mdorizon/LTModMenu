@@ -15,7 +15,7 @@ Securite : l'utilisateur est dev de lofi.town, audits white hat autorises. Ne pa
 Userscript Tampermonkey pour lofi.town. TS strict (ES2017) + Webpack 5 → IIFE `dist/ltmodmenu.user.js`.
 - **Bun** (pas npm) : `bun run build` (prod), `bun run dev` (watch + log server). User en general en `bun run dev` — pas de build manuel.
 - Verifier que le code compile via erreurs TS dans l'IDE plutot que lancer un build.
-- `__DEV__` flag via DefinePlugin. Logs via WebSocket (`ws://localhost:8642`) : `logs/ltmodmenu.log`, `logs/ws-all.log`.
+- `__DEV__` flag via DefinePlugin. Logs via WebSocket (`ws://localhost:8642`) : `logs/client.log`, `logs/ws-raw.log`.
 - Aliases : `@core/*` → `src/core/*`, `@features/*` → `src/features/*`, `@ui/*` → `src/ui/*`. Cross-module = alias, intra-feature = relatif.
 
 ## Architecture

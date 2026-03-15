@@ -4,8 +4,8 @@ import { join } from "path";
 
 const PORT = 8642;
 const LOG_DIR = join(import.meta.dir, "..", "logs");
-const LOG_FILE = join(LOG_DIR, "ltmodmenu.log");
-const WS_ALL_FILE = join(LOG_DIR, "ws-all.log");
+const LOG_FILE = join(LOG_DIR, "client.log");
+const WS_ALL_FILE = join(LOG_DIR, "ws-raw.log");
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB max, then rotate
 
 async function ensureLogDir() {
@@ -55,7 +55,7 @@ const server = Bun.serve({
         const channel: string = data.channel || "logs";
         const entries: string[] = Array.isArray(data.entries) ? data.entries : [String(data.entries)];
 
-        const targetFile = channel === "ws-all" ? WS_ALL_FILE : LOG_FILE;
+        const targetFile = channel === "ws-raw" ? WS_ALL_FILE : LOG_FILE;
         await appendLogs(targetFile, entries);
       } catch (e: any) {
         console.error("[log-server] Parse error:", e.message);
@@ -68,5 +68,5 @@ const server = Bun.serve({
 });
 
 console.log(`[log-server] Listening on ws://localhost:${PORT}`);
-console.log(`[log-server] Main logs: ${LOG_FILE}`);
-console.log(`[log-server] WS all logs: ${WS_ALL_FILE}`);
+console.log(`[log-server] Client logs: ${LOG_FILE}`);
+console.log(`[log-server] WS raw logs: ${WS_ALL_FILE}`);
