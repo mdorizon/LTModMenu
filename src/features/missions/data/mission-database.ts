@@ -21,4 +21,5 @@ export const MISSION_DB: Record<string, MissionDef> = {
   "play-5-hours":                 { title: "Play for 5 hours",                 requiredAmount: 5,    pointsReward: 1500, progressKey: "play-hour" },
   "earn-2000-coins-from-fishing": { title: "Earn 2000 coins from fishing",     requiredAmount: 2000, pointsReward: 1600, progressKey: "sell-fish-for-coins" },
   "catch-legendary-fish":         { title: "Catch a legendary fish",           requiredAmount: 1,    pointsReward: 1500, progressKey: "catch-legendary-fish" },
+  "catch-5-epic-fish":            { title: "Catch 5 epic fish",                requiredAmount: 5,    pointsReward: 1550, progressKey: "catch-epic-fish" },
 };

@@ -1,7 +1,8 @@
 import { log } from "@core/logger";
-import { MISSION_DB } from "./data/mission-database";
+import { findMissionDatabase } from "@core/module-resolver";
+import { MISSION_DB, type MissionDef } from "./data/mission-database";
 
-export type { MissionDef } from "./data/mission-database";
+export type { MissionDef };
 
 export interface Mission {
   key: string;
@@ -11,10 +12,26 @@ export interface Mission {
   progressKey: string;
 }
 
+// Try game's own mission DB first, fall back to local copy
+let gameMissionDB: Record<string, MissionDef> | null = null;
+
+function getGameMissionDB(): Record<string, MissionDef> | null {
+  if (gameMissionDB) return gameMissionDB;
+  if (!window.__wpRequire) return null;
+  gameMissionDB = findMissionDatabase(window.__wpRequire) as Record<string, MissionDef> | null;
+  if (gameMissionDB) log("MISSIONS", "Loaded " + Object.keys(gameMissionDB).length + " missions from game");
+  return gameMissionDB;
+}
+
+function formatTitle(key: string): string {
+  return key.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+}
+
 function resolveMission(key: string): Mission {
-  const def = MISSION_DB[key];
+  const gameDB = getGameMissionDB();
+  const def = gameDB?.[key] ?? MISSION_DB[key];
   if (def) return { key, ...def };
-  return { key, title: key, requiredAmount: 1, pointsReward: 0, progressKey: key };
+  return { key, title: formatTitle(key), requiredAmount: 1, pointsReward: 0, progressKey: key };
 }
 
 interface MissionSetRaw {

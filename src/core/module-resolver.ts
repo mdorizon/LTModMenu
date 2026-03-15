@@ -172,6 +172,21 @@ export function findSocketClient(exports: any): any | null {
   return null;
 }
 
+export function findMissionDatabase(require: any): Record<string, any> | null {
+  for (const [, exp] of iterateModules(require)) {
+    if (!exp || typeof exp !== "object") continue;
+    for (const [, val] of safeKeys(exp)) {
+      if (!val || typeof val !== "object") continue;
+      // The mission DB is an object with keys like "catch-10-fish"
+      // where each value has requiredAmount + pointsReward + progressKey
+      if (val["catch-10-fish"]?.requiredAmount && val["catch-10-fish"]?.pointsReward) {
+        return val;
+      }
+    }
+  }
+  return null;
+}
+
 export function findPixiGraphics(require: any): any | null {
   for (const [, exp] of iterateModules(require)) {
     if (exp?.Graphics?.prototype?.rect) return exp.Graphics;
