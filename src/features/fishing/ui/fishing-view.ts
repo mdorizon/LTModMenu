@@ -1,5 +1,5 @@
 import { mkHeader, bindNav, type RenderFn } from "@ui/components";
-import { fishingLoop, isFishingLoopRunning, stopFishingLoop, updateHUD } from "../fishing-loop";
+import { fishingLoop, isFishingLoopRunning, stopFishingLoop, updateHUD, getSkipMinigame, setSkipMinigame } from "../fishing-loop";
 import { renderForceFishing, bindForceFishing } from "../force-fishing";
 import { renderFishShop, bindFishShop } from "../fish-shop";
 import { renderAutoSell, bindAutoSell } from "../auto-sell";
@@ -48,6 +48,8 @@ export function renderFishing(hud: HTMLElement, renderMainFn: RenderFn, pages: R
     '<button class="lt-action ' + (window.__botPaused ? "lt-success" : "lt-danger") + '" id="lt-toggle">' +
     (window.__botPaused ? "START" : "STOP") +
     '</button>' +
+    '<button class="lt-action ' + (getSkipMinigame() ? 'lt-success' : 'lt-muted') + '" id="lt-skip-minigame">' +
+    'SKIP MINIGAME: ' + (getSkipMinigame() ? 'ON' : 'OFF') + '</button>' +
     '<button class="lt-action lt-danger" id="lt-reset">Reset Stats</button>' +
     renderAutoSell() +
     renderForceFishing() +
@@ -64,6 +66,15 @@ export function renderFishing(hud: HTMLElement, renderMainFn: RenderFn, pages: R
       fishingLoop();
     }
     renderFishing(hud, renderMainFn, pages);
+  };
+
+  document.getElementById("lt-skip-minigame")!.onclick = () => {
+    const next = !getSkipMinigame();
+    setSkipMinigame(next);
+    const btn = document.getElementById("lt-skip-minigame")!;
+    btn.textContent = "SKIP MINIGAME: " + (next ? "ON" : "OFF");
+    btn.className = "lt-action " + (next ? "lt-success" : "lt-muted");
+    log("UI", "Skip minigame " + (next ? "enabled" : "disabled"));
   };
 
   document.getElementById("lt-reset")!.onclick = () => {
