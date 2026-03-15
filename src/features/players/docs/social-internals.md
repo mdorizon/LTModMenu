@@ -241,9 +241,9 @@ ws.addEventListener("message", (e) => {
 
 ### Templates de scenes burrow
 
-Les templates sont extraits du code source webpack (module 20493) au runtime :
+Les templates sont extraits du code source webpack (module 82380) au runtime :
 ```js
-// Le code source contient un objet literal `ik={...}` avec tous les templates
+// Le code source contient un objet literal `ir={...}` avec tous les templates
 // extractBurrowTemplates() parse ce code et stocke dans window.__sceneCache
 ```
 

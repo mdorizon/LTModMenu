@@ -61,4 +61,4 @@ Les Graphics sont ajoutees a `gizmoContainer` (qui est dans le meme espace de co
 | 9502   | 493   | Constantes jeu (cm, vitesse, anim) — exports non-configurable |
 | 20993  | ?     | GameGlobals (signal bus, camera control) |
 | 77963  | 4642  | PixiJS v8 bundle (Graphics, Container, Application, etc.) |
-| 20493  | 493   | App class (gameApp, scene, colliders, gizmoContainer) |
+| 82380  | 2380  | App class (gameApp, scene, colliders, gizmoContainer) |

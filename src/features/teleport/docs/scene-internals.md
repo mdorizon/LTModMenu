@@ -67,9 +67,9 @@ const KNOWN_SCENES: Record<number, string> = {
 
 Accedes via `window.__wpRequire(moduleId)` apres capture du webpack require.
 
-**2. Burrow templates (module 20493)**
+**2. Burrow templates (module 82380)**
 
-Le module 20493 contient dans son code source un objet literal `ik={...}` qui definit tous les templates de burrows. Extrait par `extractBurrowTemplates()` :
+Le module 82380 contient dans son code source un objet literal `ir={...}` qui definit tous les templates de burrows. Extrait par `extractBurrowTemplates()` :
 
 ```js
 // Parse le code source du module
@@ -241,5 +241,5 @@ Le `require` interne de webpack, capture via le hook `webpackChunk_N_E.push`. Pe
 - `loadScene` recree `localPlayer` — TOUTES les modifications d'instance sont perdues (speed, noclip handler, etc.)
 - Le cache de scenes n'est pas rempli instantanement — les templates burrow sont extraits ~5s apres le demarrage
 - `probeInteractableScenes` trigger de vrais interactions cote serveur — peut avoir des effets de bord
-- Les IDs de modules webpack changent entre les builds du jeu — les IDs hardcodes (43445, 46670, 20493) peuvent casser
+- Les IDs de modules webpack changent entre les builds du jeu — les IDs hardcodes (43445, 46670, 82380) peuvent casser
 - `backToMainScene` n'est pas toujours disponible sur `gameApp` — tester `app.backToMainScene` avant d'appeler

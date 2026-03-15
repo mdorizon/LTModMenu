@@ -15,7 +15,7 @@ Securite : l'utilisateur est dev de lofi.town, audits white hat autorises. Ne pa
 Userscript Tampermonkey pour lofi.town. TS strict (ES2017) + Webpack 5 → IIFE `dist/ltmodmenu.user.js`.
 - **Bun** (pas npm) : `bun run build` (prod), `bun run dev` (watch + log server). User en general en `bun run dev` — pas de build manuel.
 - Verifier que le code compile via erreurs TS dans l'IDE plutot que lancer un build.
-- `__DEV__` flag via DefinePlugin. Logs : `logs/ltmodmenu.log`, `logs/ws-all.log`.
+- `__DEV__` flag via DefinePlugin. Logs via WebSocket (`ws://localhost:8642`) : `logs/ltmodmenu.log`, `logs/ws-all.log`.
 - Aliases : `@core/*` → `src/core/*`, `@features/*` → `src/features/*`, `@ui/*` → `src/ui/*`. Cross-module = alias, intra-feature = relatif.
 
 ## Architecture
@@ -23,7 +23,7 @@ Userscript Tampermonkey pour lofi.town. TS strict (ES2017) + Webpack 5 → IIFE 
 ```
 src/
   index.ts              # Entry, init critique (voir ordre ci-dessous)
-  core/                 # game.ts, logger.ts, storage.ts, webpack-spy.ts, websocket-hook.ts, console-filter.ts
+  core/                 # game.ts, logger.ts, storage.ts, webpack-spy.ts, module-resolver.ts, websocket-hook.ts, console-filter.ts
     types/              # global.d.ts, player.d.ts, fish.d.ts
     docs/               # ws-protocol-internals.md, lobby-switch-internals.md
   features/
@@ -63,7 +63,29 @@ Chaque feature a `ui/*-view.ts` (fonction `render*(hud, renderMainFn, pages)`) e
 | Missions | `src/features/missions/docs/missions-internals.md` |
 | Exploits non implementes | `src/core/docs/game-changers.md` |
 
-Analyses webpack du client dans `gameFiles-analysis/` (3 chunks : 493=engine, 5677=stores, page=UI+auth).
+Analyses webpack du client dans `gameFiles/analysis/` :
+- `v1/` : analyses de l'ancienne version (493=engine, 5677=stores, page=UI+auth)
+- `update-changelog.md` : diff v1→v2, module IDs, nouveautes
+
+Fichiers du jeu dans `gameFiles/v1/` (ancien) et `gameFiles/v2/` (post-update 2026-03-15).
+`gameFiles/manifest.json` est versionne (exception gitignore) et utilise par la CI.
+
+## Webpack module detection
+
+`module-resolver.ts` trouve les modules par signature (forme des exports), pas par ID.
+- Stores Zustand : identifies par les cles uniques de `getState()` (ex: `accessToken` + `fishInventory` pour useUserData)
+- App class : `prototype.loadScene` + `_instance`
+- GameGlobals : `signal.emit` + `manualCameraControl` + `dragCameraMode`
+- SocketClient : `_socket` + `listeners` + `sessionId`
+- Le cache webpack (`require.c`) n'existe pas dans cette version — on itere les chunks charges puis `require(id)`
+- Skip les modules async (stubs avec `Promise.resolve().then`) pour eviter les side effects
+- PixiJS v8 exporte des Proxies deprecated (DRAW_MODES, etc.) — `safeKeys()` dans module-resolver skip ces cles pour eviter les warnings
+- Ne jamais hardcoder de module IDs dans le code source
+
+## CI game update monitoring
+
+Workflow `check-game-update.yml` (toutes les 6h) : fetch `app.lofi.town`, compare les chunks avec `gameFiles/manifest.json`, cree une issue GitHub + notif Discord si changement detecte.
+Script local : `bun run scripts/check-game-update.ts` (check) ou `--save` (met a jour le manifest).
 
 ## Gotchas critiques
 

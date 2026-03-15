@@ -7,7 +7,7 @@
 
 **Impact : CRITIQUE. C'est le plus gros upgrade possible du mod.**
 
-Le mod capture actuellement `gameApp` (module 20493) via webpack spy, mais ne capture AUCUN store Zustand. Or les stores contiennent tout l'etat cote client :
+Le mod capture actuellement `gameApp` (module 82380) via webpack spy, mais ne capture AUCUN store Zustand. Or les stores contiennent tout l'etat cote client :
 
 | Store | Module ID | Donnees cles |
 |-------|-----------|-------------|
