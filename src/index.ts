@@ -32,6 +32,11 @@ initSpeedWatcher();
 // 5. Hook webpack chunks (must be before game loads)
 import "@core/webpack-spy";
 
+// 5b. Sound hook (patches Howl.prototype.play, retries until ready)
+import { initSoundHook, initMusicPauseHook } from "@features/sounds/sounds";
+initMusicPauseHook();
+initSoundHook();
+
 // 6. Hook WebSocket constructor (must be before game connects)
 import "@core/websocket-hook";
 
