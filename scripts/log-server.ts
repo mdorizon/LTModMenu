@@ -25,48 +25,48 @@ async function rotateIfNeeded(filePath: string) {
   }
 }
 
+async function appendLogs(filePath: string, entries: string[]) {
+  const text = entries.join("\n") + "\n";
+  const existing = existsSync(filePath) ? await readFile(filePath, "utf-8") : "";
+  await writeFile(filePath, text + existing);
+  await rotateIfNeeded(filePath);
+}
+
 await ensureLogDir();
 
 const server = Bun.serve({
   port: PORT,
-  async fetch(req) {
-    // CORS preflight
-    if (req.method === "OPTIONS") {
-      return new Response(null, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "POST",
-          "Access-Control-Allow-Headers": "Content-Type",
-        },
-      });
-    }
+  fetch(req, server) {
+    // Upgrade WebSocket connections
+    if (server.upgrade(req)) return undefined;
 
-    const pathname = new URL(req.url).pathname;
-
-    if (req.method === "POST" && (pathname === "/logs" || pathname === "/ws-all")) {
+    // Fallback: return 404 for non-WS requests
+    return new Response("WebSocket server — connect via ws://localhost:" + PORT, {
+      status: 200,
+    });
+  },
+  websocket: {
+    open(ws) {
+      console.log("[log-server] Client connected");
+    },
+    async message(ws, message) {
       try {
-        const targetFile = pathname === "/ws-all" ? WS_ALL_FILE : LOG_FILE;
-        const body = await req.json();
-        const entries: string[] = Array.isArray(body) ? body : [body];
-        const text = entries.join("\n") + "\n";
-        const existing = existsSync(targetFile) ? await readFile(targetFile, "utf-8") : "";
-        await writeFile(targetFile, text + existing);
-        await rotateIfNeeded(targetFile);
-        return new Response("ok", {
-          headers: { "Access-Control-Allow-Origin": "*" },
-        });
-      } catch (e: any) {
-        return new Response(e.message, {
-          status: 400,
-          headers: { "Access-Control-Allow-Origin": "*" },
-        });
-      }
-    }
+        const data = JSON.parse(String(message));
+        const channel: string = data.channel || "logs";
+        const entries: string[] = Array.isArray(data.entries) ? data.entries : [String(data.entries)];
 
-    return new Response("Not found", { status: 404 });
+        const targetFile = channel === "ws-all" ? WS_ALL_FILE : LOG_FILE;
+        await appendLogs(targetFile, entries);
+      } catch (e: any) {
+        console.error("[log-server] Parse error:", e.message);
+      }
+    },
+    close(ws) {
+      console.log("[log-server] Client disconnected");
+    },
   },
 });
 
-console.log(`[log-server] Listening on http://localhost:${PORT}`);
+console.log(`[log-server] Listening on ws://localhost:${PORT}`);
 console.log(`[log-server] Main logs: ${LOG_FILE}`);
 console.log(`[log-server] WS all logs: ${WS_ALL_FILE}`);
