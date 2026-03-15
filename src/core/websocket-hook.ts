@@ -269,6 +269,7 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
           const localEvents = [
             "connected",
             "fishingFrenzyUpdate",
+            "fishing-result",
             "focus-stats-updated",
           ];
 
