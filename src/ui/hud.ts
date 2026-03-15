@@ -14,6 +14,7 @@ import { startAutoSave } from "@core/storage";
 import { initSceneCache } from "@features/teleport/teleport";
 import { initThemeSync } from "./theme";
 import { log } from "@core/logger";
+import { unlockPlayButton } from "./play-gate";
 
 export function initHUD(): void {
   log("HUD", "initHUD() called");
@@ -196,6 +197,9 @@ export function initHUD(): void {
   log("HUD", "========================================");
   log("HUD", "HUD INJECTED AND RENDERED SUCCESSFULLY!");
   log("HUD", "========================================");
+
+  // HUD is ready — let the player click Play
+  unlockPlayButton();
 
   // ── Start auto-save ──
   startAutoSave();

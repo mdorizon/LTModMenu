@@ -9,6 +9,10 @@ import "@core/console-filter";
 
 import { log } from "@core/logger";
 
+// 0. Lock Play button until mod is ready (must be before game renders)
+import { lockPlayButton } from "@ui/play-gate";
+lockPlayButton();
+
 log("INIT", ">>> Script executing in PAGE context <<<");
 log("INIT", "document.readyState: " + document.readyState);
 log("INIT", "window.WebSocket exists: " + typeof window.WebSocket);
