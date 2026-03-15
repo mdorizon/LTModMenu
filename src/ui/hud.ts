@@ -61,11 +61,8 @@ export function initHUD(): void {
   let dy = 0;
 
   hud.addEventListener("mousedown", (e) => {
-    if (
-      (e.target as HTMLElement).id === "lt-header" ||
-      ((e.target as HTMLElement).parentElement &&
-        (e.target as HTMLElement).parentElement!.id === "lt-header")
-    ) {
+    const target = e.target as HTMLElement;
+    if (target.closest("#lt-header") && !target.closest("#lt-back")) {
       dragging = true;
       const rect = hud.getBoundingClientRect();
       hud.style.top = rect.top + "px";
