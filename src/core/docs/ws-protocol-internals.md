@@ -1,6 +1,6 @@
 # WebSocket Protocol Internals (lofi.town)
 
-> Reverse-engineered le 2026-03-12 via WS hook + ws-all.log dump sur app.lofi.town.
+> Reverse-engineered le 2026-03-12 via WS hook + ws-raw.log dump sur app.lofi.town.
 > Ce fichier est une reference pour Claude (IA) — format optimise pour contexte LLM, pas pour lecture humaine.
 
 ## Transport : Socket.IO v4

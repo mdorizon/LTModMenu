@@ -92,7 +92,7 @@ function flushLogs(): void {
 
   if (pendingWsAll.length > 0) {
     const batch = pendingWsAll.splice(0);
-    ws.send(JSON.stringify({ channel: "ws-all", entries: batch }));
+    ws.send(JSON.stringify({ channel: "ws-raw", entries: batch }));
   }
 }
 
@@ -115,7 +115,7 @@ export function downloadLogs(): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `ltmodmenu-logs-${new Date().toISOString().replace(/[:.]/g, "-")}.log`;
+  a.download = `client-${new Date().toISOString().replace(/[:.]/g, "-")}.log`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
