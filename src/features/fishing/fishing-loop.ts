@@ -26,9 +26,9 @@ export function stopFishingLoop(): void {
 
   // Clean up FishingManager state to avoid getting stuck
   const fm = getFishingManager();
-  if (!fm || (!fm.isFishing && !fm.playingMiniGame && !fm.resultUI)) return;
+  if (!fm || (!fm.isFishing && !fm.fishingUI?.visible)) return;
   try {
-    if (fm.playingMiniGame) {
+    if (fm.fishingUI?.visible) {
       fm.stopMiniGame();
       log("BOT", "Cleaned up: stopped minigame");
     }
@@ -36,10 +36,8 @@ export function stopFishingLoop(): void {
       fm.stopFishing();
       log("BOT", "Cleaned up: stopped fishing");
     }
-    if (fm.resultUI) {
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: " ", code: "Space" }));
-      log("BOT", "Cleaned up: dismissed result modal");
-    }
+    // Dismiss any result card that might be showing
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: " ", code: "Space" }));
     fm.input?.stopInput?.(false, "fishing");
     fm.input?.stopInput?.(false, "waiting-for-result");
   } catch (e) {
@@ -91,18 +89,40 @@ function castLine(): boolean {
   return true;
 }
 
-// ── Step 2: Wait for fish bite (reel button appears) ──
-async function waitForBite(): Promise<boolean> {
+// ── Step 2: Wait for fish bite ──
+// Two paths since the 2026-03-15 update:
+//   Normal mode:  fishCaught → reelButton visible → player does minigame
+//   Focus mode:   fishCaught → game auto-solves challenge, no reel/minigame → canCatchFish resets to true
+type BiteResult = "reel" | "focus" | false;
+
+async function waitForBite(): Promise<BiteResult> {
   const fm = getFishingManager();
   if (!fm) return false;
   const start = Date.now();
   log("BOT", "[2] Waiting for fish bite...");
 
+  // Snapshot canCatchFish — it starts true after cast, goes false on fishCaught,
+  // then either reelButton shows (normal) or canCatchFish goes back to true (focus auto-solve)
+  let sawCatchFishDrop = false;
+
   while (fishingLoopRunning && !window.__botPaused) {
+    // Normal path: reel button appears
     if (fm.reelButton?.sprite?.visible) {
       log("BOT", "[2] Fish bite! " + (fm.currentFish?.name || "unknown"));
-      return true;
+      return "reel";
     }
+
+    // Track when canCatchFish drops to false (= fishCaught received)
+    if (!fm.canCatchFish) {
+      sawCatchFishDrop = true;
+    }
+
+    // Focus path: canCatchFish dropped then came back = game auto-solved
+    if (sawCatchFishDrop && fm.canCatchFish) {
+      log("BOT", "[2] Focus mode auto-catch detected (" + (fm.currentFish?.name || "unknown") + ")");
+      return "focus";
+    }
+
     if (!fm.isFishing) {
       log("BOT", "[2] Stopped fishing unexpectedly");
       return false;
@@ -131,7 +151,7 @@ async function playMinigame(): Promise<boolean> {
   let clickCount = 0;
   const start = Date.now();
 
-  while (fishingLoopRunning && fm.playingMiniGame) {
+  while (fishingLoopRunning && fm.fishingUI?.visible) {
     if (fm.disableMinigameInput) {
       await sleep(30);
       continue;
@@ -170,7 +190,33 @@ async function playMinigame(): Promise<boolean> {
   return true;
 }
 
-// ── Step 4: Wait for result and dismiss modal ──
+// ── Step 3b: Wait for focus auto-catch result (no minigame, no modal) ──
+async function waitForFocusResult(): Promise<{ id: string; name: string; weight: number; isShiny: boolean } | null> {
+  const start = Date.now();
+  log("BOT", "[3b] Focus mode — waiting for fishing-result...");
+
+  while (fishingLoopRunning) {
+    if (window.__lastFish) break;
+    if (Date.now() - start > 15000) {
+      log("BOT", "[3b] TIMEOUT waiting for focus fishing-result");
+      break;
+    }
+    await sleep(100);
+  }
+
+  const fishData = window.__lastFish;
+  window.__lastFish = null;
+
+  if (!fishData) {
+    log("BOT", "[3b] No fish data received");
+    return null;
+  }
+
+  log("BOT", "[3b] Focus fish: " + fishData.name + " " + fishData.weight + "kg shiny=" + fishData.isShiny);
+  return { id: String(fishData.id || ""), name: fishData.name || "", weight: fishData.weight || 0, isShiny: fishData.isShiny || false };
+}
+
+// ── Step 4: Wait for result and dismiss modal (normal mode) ──
 async function waitAndDismissResult(): Promise<{ id: string; name: string; weight: number; isShiny: boolean } | null> {
   const fm = getFishingManager();
   if (!fm) return null;
@@ -190,19 +236,12 @@ async function waitAndDismissResult(): Promise<{ id: string; name: string; weigh
   const fishData = window.__lastFish;
   window.__lastFish = null;
 
-  // Wait for resultUI to appear, then dismiss it
-  const resultStart = Date.now();
-  while (Date.now() - resultStart < 5000) {
-    if (fm.resultUI) {
-      // Wait for the animation to finish
-      await sleep(1500);
-      // Dismiss via keydown (same as player pressing any key)
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: " ", code: "Space" }));
-      log("BOT", "[4] Result modal dismissed");
-      await sleep(500);
-      break;
-    }
-    await sleep(100);
+  // Dismiss the result card via Space after the card animation (~917ms)
+  if (fishData) {
+    await sleep(1000);
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: " ", code: "Space" }));
+    log("BOT", "[4] Result card dismissed");
+    await sleep(300);
   }
 
   if (!fishData) {
@@ -247,18 +286,23 @@ export async function fishingLoop(): Promise<void> {
     }
 
     // ── 2. Wait for fish bite ──
-    const gotBite = await waitForBite();
-    if (!gotBite) continue;
+    const biteResult = await waitForBite();
+    if (!biteResult) continue;
 
-    // ── 3. Play the minigame ──
-    const minigameOk = await playMinigame();
-    if (!minigameOk) {
-      await sleep(1000);
-      continue;
+    let result: { id: string; name: string; weight: number; isShiny: boolean } | null;
+
+    if (biteResult === "focus") {
+      // ── Focus path: game already auto-solved, just wait for __lastFish ──
+      result = await waitForFocusResult();
+    } else {
+      // ── Normal path: minigame → result modal ──
+      const minigameOk = await playMinigame();
+      if (!minigameOk) {
+        await sleep(1000);
+        continue;
+      }
+      result = await waitAndDismissResult();
     }
-
-    // ── 4. Wait for result and dismiss ──
-    const result = await waitAndDismissResult();
 
     // ── 5. Process fish stats ──
     if (result) {
