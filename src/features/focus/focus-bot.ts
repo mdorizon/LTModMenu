@@ -38,7 +38,8 @@ function sleep(ms: number): Promise<void> {
 }
 
 function getSocket(): any | null {
-  return window.__socketClient?.socket ?? null;
+  const sc = window.__socketClient;
+  return sc?.socket ?? sc?._socket ?? null;
 }
 
 function getFocusStore(): any | null {

@@ -42,16 +42,21 @@ export interface GameGlobals {
 }
 
 export interface SocketClient {
-  socket: any;
-  emit: (event: string, data?: any) => void;
-  on: (event: string, callback: (...args: any[]) => void) => void;
-  off: (event: string, callback?: (...args: any[]) => void) => void;
-  awaitEvent: (event: string) => Promise<any>;
+  socket?: any;
+  _socket?: any;
+  listeners: Record<string, any>;
+  sessionId: string | null;
+  emit?: (event: string, data?: any) => void;
+  on?: (event: string, callback: (...args: any[]) => void) => void;
+  off?: (event: string, callback?: (...args: any[]) => void) => void;
+  awaitEvent?: (event: string) => Promise<any>;
+  [key: string]: any;
 }
 
 declare global {
   const __DEV__: boolean;
   const __VERSION__: string;
+
 
   class Howl {
     _src?: string;
@@ -77,7 +82,7 @@ declare global {
     __solveFishingChallenge: (challenge: string) => string;
     __sceneCache: Map<string, GameScene>;
     __wpRequire?: (id: number) => any;
-    __ltSpyRetry?: () => boolean;
+
     __localPlayerId: string | null;
     __playerProfiles: Map<string, PlayerProfile>;
     __friendIds: Map<string, FriendPresence>;

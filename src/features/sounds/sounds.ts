@@ -1,12 +1,13 @@
 import { loadData, saveData } from "@core/storage";
 import { log } from "@core/logger";
 import { setStatus, clearStatus } from "@ui/status-bar";
+import { findPlaySoundFn } from "@core/module-resolver";
 
 // ── Music pause (Audio.prototype.play interception) ──
 
 let musicEl: HTMLAudioElement | null = null;
 let musicPaused = false;
-let everPlayed = false;
+let lastSrc = "";
 
 export function initMusicPauseHook(): void {
   const origPlay = Audio.prototype.play;
@@ -15,14 +16,12 @@ export function initMusicPauseHook(): void {
       if (!musicEl || !musicEl.src) musicEl = this;
     }
     if (this === musicEl) {
-      if (musicPaused) return Promise.resolve();
-      // External pause: element was playing before, now it's paused but we didn't do it
-      if (everPlayed && this.paused) {
-        musicPaused = true;
-        log("SOUND", "External pause detected, blocking sync");
-        return Promise.resolve();
+      // New song — src changed, reset pause state
+      if (this.src !== lastSrc) {
+        lastSrc = this.src;
+        if (!musicPaused) return origPlay.call(this);
       }
-      everPlayed = true;
+      if (musicPaused) return Promise.resolve();
     }
     return origPlay.call(this);
   };
@@ -44,7 +43,7 @@ export function getMusicPlaybackDuration(): number {
 export function blockGameMusic(): void {
   if (!musicPaused) {
     musicPaused = true;
-    everPlayed = false;
+
     if (musicEl) musicEl.pause();
   }
 }
@@ -52,7 +51,7 @@ export function blockGameMusic(): void {
 export function unblockGameMusic(): void {
   if (musicPaused) {
     musicPaused = false;
-    everPlayed = false;
+
     if (musicEl) musicEl.play();
   }
 }
@@ -60,13 +59,12 @@ export function unblockGameMusic(): void {
 export function toggleMusicPause(): boolean {
   if (musicPaused) {
     musicPaused = false;
-    everPlayed = false;
+
     if (musicEl) musicEl.play();
     log("SOUND", "Music resumed");
     return false;
   }
   musicPaused = true;
-  everPlayed = false;
   if (musicEl) musicEl.pause();
   log("SOUND", "Music paused");
   return true;
@@ -152,12 +150,8 @@ export function initSoundHook(): void {
   function tryHook(): boolean {
     if (!window.__wpRequire || typeof Howl === "undefined") return false;
 
-    let playSound: (name: string) => void;
-    try {
-      const mod = window.__wpRequire(88390);
-      if (typeof mod?.U !== "function") return false;
-      playSound = mod.U;
-    } catch { return false; }
+    const playSound = findPlaySoundFn(window.__wpRequire);
+    if (!playSound) return false;
 
     const origPlay = Howl.prototype.play;
 
@@ -169,11 +163,14 @@ export function initSoundHook(): void {
     };
 
     let tagged = 0;
+    const _warn = console.warn;
+    console.warn = () => {};
     for (const name of SFX_NAMES) {
       currentName = name;
       try { playSound(name); tagged++; } catch (_e) { /* not loaded */ }
     }
     currentName = null;
+    console.warn = _warn;
 
     if (tagged === 0) {
       Howl.prototype.play = origPlay;

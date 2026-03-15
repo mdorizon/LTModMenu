@@ -55,6 +55,8 @@ console.log = (...args: unknown[]) => {
 
 console.warn = (...args: unknown[]) => {
   if (filterEnabled && isFromGameScript()) return;
+  // PixiJS DRAW_MODES warnings triggered by our module scanning
+  if (typeof args[0] === "string" && args[0].includes("DRAW_MODES")) return;
   _warn.apply(console, args);
 };
 

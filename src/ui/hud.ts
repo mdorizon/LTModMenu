@@ -110,33 +110,11 @@ export function initHUD(): void {
       return;
     }
 
-    // Direct polling fallback: try to grab App._instance via wpRequire
-    if (window.__wpRequire) {
-      try {
-        const appModule = window.__wpRequire(20493);
-        if (appModule?.App?._instance?.localPlayer !== undefined) {
-          window.__gameApp = appModule.App._instance;
-          log("HUD", "gameApp captured via direct polling (retry #" + retryCount + ")");
-          setTimeout(() => initSceneCache(), 5000);
-          clearInterval(retryInterval);
-          return;
-        }
-      } catch (_e) {
-        // Module not ready yet
-      }
-    }
+    // gameApp is captured by webpack-spy via the _instance setter.
+    // No additional scanning needed here.
 
-    if (window.__ltSpyRetry) {
-      const ok = window.__ltSpyRetry();
-      log("HUD", "Spy retry #" + retryCount + ": " + (ok ? "SUCCESS" : "waiting..."));
-      if (ok) {
-        setTimeout(() => initSceneCache(), 5000);
-        clearInterval(retryInterval);
-      }
-    } else {
-      if (retryCount % 5 === 0) {
-        log("HUD", "Waiting for spy retry function... (check #" + retryCount + ")");
-      }
+    if (retryCount % 5 === 0) {
+      log("HUD", "Waiting for gameApp... (check #" + retryCount + ")");
     }
   }, 1000);
 

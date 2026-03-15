@@ -1,5 +1,6 @@
 import { log } from "@core/logger";
 import { setStatus, clearStatus } from "@ui/status-bar";
+import { findPixiGraphics } from "@core/module-resolver";
 
 let enabled = false;
 let drawnChildren: any[] = [];
@@ -11,24 +12,9 @@ export function isHitboxes(): boolean {
 
 function findGraphicsClass(): any {
   if (_Graphics) return _Graphics;
-
-  // Module 77963 = pixi.js main bundle (chunk 4642)
-  if (window.__wpRequire) {
-    try {
-      const pixi = window.__wpRequire(77963);
-      if (pixi?.Graphics) { _Graphics = pixi.Graphics; return _Graphics; }
-    } catch (_) {}
-  }
-
-  // Fallback: search webpack cache (v8 check: prototype.rect)
-  const req = window.__wpRequire as any;
-  if (req?.c) {
-    for (const id in req.c) {
-      const exp = req.c[id]?.exports;
-      if (exp?.Graphics?.prototype?.rect) { _Graphics = exp.Graphics; return _Graphics; }
-    }
-  }
-  return null;
+  if (!window.__wpRequire) return null;
+  _Graphics = findPixiGraphics(window.__wpRequire);
+  return _Graphics;
 }
 
 function drawHitboxes(): string | null {

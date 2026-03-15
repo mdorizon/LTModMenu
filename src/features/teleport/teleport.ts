@@ -39,6 +39,7 @@ export function doTP(x: number, y: number, dir: string): boolean {
 const SCENE_WEBPACK_IDS: Record<string, { moduleId: number; exportName: string }> = {
   fishing: { moduleId: 43445, exportName: "fishingScene" },
   main: { moduleId: 46670, exportName: "mainScene" },
+  "gokart-map": { moduleId: 76156, exportName: "gokartMapScene" },
 };
 
 // Sub-maps that require navigating to a parent map first
