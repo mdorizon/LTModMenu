@@ -1,0 +1,109 @@
+name: Check lofi.town game update
+
+on:
+  schedule:
+    # Every 6 hours
+    - cron: "0 */6 * * *"
+  workflow_dispatch: # manual trigger
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Check for game update
+        id: check
+        run: |
+          bun run scripts/check-game-update.ts 2>&1 | tee /tmp/check-output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          elif [ $EXIT_CODE -eq 1 ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            # Extract summary (everything after "=== GAME UPDATE DETECTED ===")
+            SUMMARY=$(sed -n '/=== GAME UPDATE DETECTED ===/,$ p' /tmp/check-output.txt | tail -n +2)
+            echo "summary<<EOF" >> $GITHUB_OUTPUT
+            echo "$SUMMARY" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "::error::Failed to check game update"
+            exit 1
+          fi
+
+      - name: Update manifest and push
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          bun run scripts/check-game-update.ts --save
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add gameFiles/manifest.json
+          git commit -m "🔍 Update game manifest — lofi.town rebuild detected"
+          git push
+
+      - name: Create issue
+        id: issue
+        if: steps.check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_URL=$(gh issue create \
+            --title "Mise à jour détectée sur lofi.town" \
+            --label "Game Update" \
+            --body "$(cat <<'EOF'
+          ## Quoi
+
+          La CI a détecté un rebuild des chunks webpack de lofi.town.
+
+          ## Pourquoi
+
+          Les module IDs et la structure des chunks ont potentiellement changé. Le mod utilise une détection par signature (résiliente), mais des changements majeurs (nouvelles features, renommages de propriétés Zustand) peuvent nécessiter une intervention manuelle.
+
+          ## Diff détecté
+
+          ${{ steps.check.outputs.summary }}
+
+          ## Comment vérifier
+
+          Lancer `bun run scripts/check-game-update.ts` localement pour voir le diff complet. Vérifier que le mod fonctionne toujours en jeu (stores capturés, gameApp hookée, pêche fonctionnelle). Si de nouveaux modules sont apparus, analyser leur contenu pour détecter de nouvelles features exploitables. Mettre à jour `gameFiles/analysis/` si nécessaire.
+
+          ## Résultat attendu
+
+          Le mod fonctionne sans régression après la mise à jour. Si de nouvelles features ont été ajoutées au jeu, elles sont documentées dans `gameFiles/analysis/update-changelog.md`.
+          EOF
+          )")
+          echo "url=$ISSUE_URL" >> $GITHUB_OUTPUT
+
+      - name: Notify Discord
+        if: steps.check.outputs.changed == 'true'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          # Escape summary for JSON (newlines → \n, quotes → \")
+          SUMMARY=$(echo '${{ steps.check.outputs.summary }}' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
+          ISSUE_URL="${{ steps.issue.outputs.url }}"
+
+          curl -s -H "Content-Type: application/json" \
+            -d "{
+              \"embeds\": [{
+                \"title\": \"Mise à jour lofi.town détectée\",
+                \"color\": 16750848,
+                \"description\": \"${SUMMARY}\",
+                \"fields\": [{
+                  \"name\": \"Issue\",
+                  \"value\": \"${ISSUE_URL}\"
+                }],
+                \"footer\": {
+                  \"text\": \"LTModMenu CI\"
+                }
+              }]
+            }" \
+            "$DISCORD_WEBHOOK_URL"

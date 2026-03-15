@@ -1,5 +1,6 @@
 .claude
-/gameFiles
+/gameFiles/*
+!/gameFiles/manifest.json
 .DS_Store
 node_modules/
 dist/
