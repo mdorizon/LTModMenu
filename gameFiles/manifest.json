@@ -1,7 +1,7 @@
 {
-  "lastChecked": "2026-03-16T18:52:41.048Z",
-  "lastChanged": "2026-03-16T18:52:41.049Z",
-  "buildId": "ggBP_GEDQG3v1KKSDc2in",
+  "lastChecked": "2026-03-16T21:51:33.666Z",
+  "lastChanged": "2026-03-16T21:20:42.714Z",
+  "buildId": "DvJW7S5-un3qtJV8G273m",
   "chunks": {
     "18": {
       "filename": "/_next/static/chunks/18-bdbe4008f006778b.js",
@@ -906,12 +906,10 @@
       "size": 173023,
       "modules": []
     },
-    "main": {
-      "filename": "/_next/static/chunks/main-app-afa07681d42ac0de.js",
-      "size": 525,
-      "modules": [
-        84639
-      ]
+    "990a3170": {
+      "filename": "/_next/static/chunks/990a3170-e61d21ce509af372.js",
+      "size": 58447,
+      "modules": []
     },
     "webpack": {
       "filename": "/_next/static/chunks/webpack-e30bef9d8b530c5d.js",
@@ -936,10 +934,12 @@
       "size": 51344,
       "modules": []
     },
-    "990a3170": {
-      "filename": "/_next/static/chunks/990a3170-e61d21ce509af372.js",
-      "size": 58447,
-      "modules": []
+    "main": {
+      "filename": "/_next/static/chunks/main-app-afa07681d42ac0de.js",
+      "size": 525,
+      "modules": [
+        84639
+      ]
     },
     "polyfills": {
       "filename": "/_next/static/chunks/polyfills-42372ed130431b0a.js",
@@ -947,7 +947,7 @@
       "modules": []
     },
     "page": {
-      "filename": "/_next/static/chunks/app/page-7719d4be86c38c5f.js",
+      "filename": "/_next/static/chunks/app/page-d7e98abce74af7c1.js",
       "size": 482247,
       "modules": [
         9667,

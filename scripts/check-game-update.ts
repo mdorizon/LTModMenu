@@ -4,18 +4,24 @@
  * compares with the stored manifest, and outputs a diff.
  *
  * Usage:
- *   bun run scripts/check-game-update.ts           # check only, exit 0 if no change
- *   bun run scripts/check-game-update.ts --save     # save new manifest if changed
+ *   bun run scripts/check-game-update.ts               # check only, exit 0 if no change
+ *   bun run scripts/check-game-update.ts --save         # save new manifest if changed
+ *   bun run scripts/check-game-update.ts --analyze      # force Claude analysis even for cosmetic
+ *
+ * Environment:
+ *   ANTHROPIC_API_KEY   — enables Claude analysis for non-cosmetic changes
+ *   GITHUB_OUTPUT       — writes structured outputs for GitHub Actions
  *
  * Exit codes:
- *   0 = no change (or --save succeeded)
- *   1 = changes detected
+ *   0 = no change (or --save succeeded, or running in CI)
+ *   1 = changes detected (local CLI only)
  *   2 = fetch/parse error
  */
 
 const GAME_URL = "https://app.lofi.town";
 const MANIFEST_PATH = "gameFiles/manifest.json";
 const SAVE = process.argv.includes("--save");
+const ANALYZE = process.argv.includes("--analyze");
 
 // ── Types ──
 
@@ -45,6 +51,16 @@ interface DiffResult {
   summary: string[];
 }
 
+type Severity = "cosmetic" | "minor" | "breaking";
+
+interface Analysis {
+  severity: Severity;
+  risk_assessment: string;
+  changes_summary: string[];
+  action_required: boolean;
+  action_items: string[];
+}
+
 // ── Fetch & parse ──
 
 async function fetchText(url: string): Promise<string> {
@@ -55,12 +71,18 @@ async function fetchText(url: string): Promise<string> {
   return res.text();
 }
 
-function extractChunkUrls(html: string): { scripts: string[]; css: string[]; buildId: string } {
+function extractChunkUrls(html: string): {
+  scripts: string[];
+  css: string[];
+  buildId: string;
+} {
   const scripts: string[] = [];
   const css: string[] = [];
 
   // Extract script src from <script src="/_next/static/chunks/..."> tags
-  for (const m of html.matchAll(/src="(\/_next\/static\/chunks\/[^"]+\.js)"/g)) {
+  for (const m of html.matchAll(
+    /src="(\/_next\/static\/chunks\/[^"]+\.js)"/g,
+  )) {
     scripts.push(m[1]);
   }
 
@@ -147,7 +169,10 @@ function diffManifests(old: Manifest, curr: Manifest): DiffResult {
     const oldChunk = old.chunks[id];
     const currChunk = curr.chunks[id];
 
-    if (oldChunk.filename !== currChunk.filename || oldChunk.size !== currChunk.size) {
+    if (
+      oldChunk.filename !== currChunk.filename ||
+      oldChunk.size !== currChunk.size
+    ) {
       result.modifiedChunks.push(id);
       result.changed = true;
 
@@ -172,20 +197,157 @@ function diffManifests(old: Manifest, curr: Manifest): DiffResult {
   if (result.buildIdChanged) result.changed = true;
 
   // Summary
-  if (result.buildIdChanged) result.summary.push(`Build ID: ${old.buildId} → ${curr.buildId}`);
-  if (result.addedChunks.length) result.summary.push(`Added chunks: ${result.addedChunks.join(", ")}`);
-  if (result.removedChunks.length) result.summary.push(`Removed chunks: ${result.removedChunks.join(", ")}`);
+  if (result.buildIdChanged)
+    result.summary.push(`Build ID: ${old.buildId} → ${curr.buildId}`);
+  if (result.addedChunks.length)
+    result.summary.push(`Added chunks: ${result.addedChunks.join(", ")}`);
+  if (result.removedChunks.length)
+    result.summary.push(`Removed chunks: ${result.removedChunks.join(", ")}`);
   for (const id of result.modifiedChunks) {
     const oldC = old.chunks[id];
     const currC = curr.chunks[id];
     let detail = `Chunk ${id}: ${oldC.filename.split("/").pop()} → ${currC.filename.split("/").pop()} (${oldC.size}B → ${currC.size}B)`;
-    if (result.addedModules[id]?.length) detail += `\n  + modules: ${result.addedModules[id].join(", ")}`;
-    if (result.removedModules[id]?.length) detail += `\n  - modules: ${result.removedModules[id].join(", ")}`;
+    if (result.addedModules[id]?.length)
+      detail += `\n  + modules: ${result.addedModules[id].join(", ")}`;
+    if (result.removedModules[id]?.length)
+      detail += `\n  - modules: ${result.removedModules[id].join(", ")}`;
     result.summary.push(detail);
   }
-  if (result.cssChanged) result.summary.push(`CSS changed: ${oldCss} → ${currCss}`);
+  if (result.cssChanged)
+    result.summary.push(`CSS changed: ${oldCss} → ${currCss}`);
 
   return result;
+}
+
+// ── Severity classification ──
+
+function classifySeverity(
+  diff: DiffResult,
+  oldManifest: Manifest,
+  newManifest: Manifest,
+): Severity {
+  if (diff.addedChunks.length > 0 || diff.removedChunks.length > 0)
+    return "breaking";
+
+  const hasAdded = Object.keys(diff.addedModules).length > 0;
+  const hasRemoved = Object.keys(diff.removedModules).length > 0;
+
+  if (hasRemoved) return "minor";
+  if (hasAdded) return "minor";
+
+  // Significant size change without module additions/removals = potential
+  // internal code modification (property renames, new logic, etc.)
+  for (const id of diff.modifiedChunks) {
+    const oldSize = oldManifest.chunks[id]?.size ?? 0;
+    const newSize = newManifest.chunks[id]?.size ?? 0;
+    if (Math.abs(newSize - oldSize) > 1000) return "minor";
+  }
+
+  // Only hash changes, tiny size deltas, or CSS changes = cosmetic rebuild
+  return "cosmetic";
+}
+
+// ── Claude API analysis ──
+
+const ANALYSIS_PROMPT = `Analyze this webpack build diff for a Tampermonkey mod targeting lofi.town.
+
+The mod detects modules by runtime signatures (not webpack IDs). Signatures:
+STORES (Zustand getState() keys): useUserData(accessToken+fishInventory), useSettings(settings.playlistVolume+timeDifference), useUsersStore(users+userCount), useLobbyStore(lobbies[]+currentLobby), useMissionStore(dailyMissions+weeklyMissions), useFocusSession(focusInProgress+sessionSettings), useFishingStats(totalFishCaught+totalGoldEarned), useModalStore(modal+inspectedPlayerId), useFishingFrenzy(communityGoalPoppedOut+status), useFriendPresence(presences+setPresence)
+OTHER: App(prototype.loadScene+_instance), GameGlobals(signal.emit+manualCameraControl+dragCameraMode), SocketClient(_socket+listeners+sessionId), playSound(sfxVolume+.rate()+.play())
+Chunks: 2380=engine/scenes, 5677=stores/data, page=React UI, webpack=loader
+
+DIFF:
+`;
+
+async function analyzeWithClaude(diff: DiffResult): Promise<Analysis | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    console.log("No ANTHROPIC_API_KEY — skipping AI analysis.");
+    return null;
+  }
+
+  console.log("Running Claude analysis...");
+  const prompt =
+    ANALYSIS_PROMPT +
+    diff.summary.join("\n") +
+    `\n\nRespond ONLY with JSON, no markdown fences:\n{"severity":"cosmetic|minor|breaking","risk_assessment":"one sentence in french","changes_summary":["short bullet in french","..."],"action_required":false,"action_items":["if any, in french"]}`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 512,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!res.ok) {
+      console.warn(`Claude API error: ${res.status} ${res.statusText}`);
+      return null;
+    }
+
+    const data = (await res.json()) as any;
+    const text: string | undefined = data.content?.[0]?.text;
+    if (!text) return null;
+
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+
+    return JSON.parse(jsonMatch[0]) as Analysis;
+  } catch (e: any) {
+    console.warn(`Claude analysis failed: ${e.message}`);
+    return null;
+  }
+}
+
+// ── Discord payload ──
+
+function buildDiscordPayload(
+  severity: Severity,
+  diff: DiffResult,
+  analysis: Analysis | null,
+): { title: string; description: string; color: number } | null {
+  // Only notify when action is needed, or when we can't tell (no analysis + not cosmetic)
+  const shouldNotify = analysis
+    ? analysis.action_required
+    : severity !== "cosmetic";
+  if (!shouldNotify) return null;
+
+  const changes = analysis?.changes_summary?.length
+    ? analysis.changes_summary.map((c) => `• ${c}`).join("\n")
+    : diff.summary.join("\n");
+
+  const actions = analysis?.action_items?.length
+    ? analysis.action_items.map((i) => `• ${i}`).join("\n")
+    : "• Analyse manuelle requise";
+
+  const verdict =
+    analysis?.risk_assessment ??
+    "Analyse IA indisponible — vérification manuelle recommandée.";
+
+  return {
+    title: "⚠️ Mise à jour lofi.town — Le mod a besoin d'attention",
+    description: [
+      "Le jeu a été mis à jour et le mod pourrait avoir besoin d'ajustements.",
+      "",
+      "**Ce qui a changé :**",
+      changes,
+      "",
+      "**Ce qu'il faut faire :**",
+      actions,
+      "",
+      `**Verdict :** ${verdict}`,
+      "",
+      "Les devs sont dessus, pas de panique !",
+    ].join("\n"),
+    color: severity === "breaking" ? 15548997 : 16750848, // red or orange
+  };
 }
 
 // ── Main ──
@@ -201,7 +363,9 @@ async function main(): Promise<void> {
   }
 
   const { scripts, css, buildId } = extractChunkUrls(html);
-  console.log(`Found ${scripts.length} chunks, ${css.length} CSS files, build ${buildId}`);
+  console.log(
+    `Found ${scripts.length} chunks, ${css.length} CSS files, build ${buildId}`,
+  );
 
   // Fetch all chunks in parallel
   const chunks: Record<string, ChunkInfo> = {};
@@ -253,7 +417,6 @@ async function main(): Promise<void> {
 
   if (!diff.changed) {
     console.log("No changes detected.");
-    // Update lastChecked
     existing.lastChecked = current.lastChecked;
     if (SAVE) await Bun.write(MANIFEST_PATH, JSON.stringify(existing, null, 2));
     return;
@@ -264,12 +427,51 @@ async function main(): Promise<void> {
     console.log(line);
   }
 
-  // Output as GitHub Actions output if running in CI
+  // Classify severity
+  const baseSeverity = classifySeverity(diff, existing, current);
+  console.log(`\nSeverity: ${baseSeverity}`);
+
+  // Claude analysis (when not cosmetic, or forced with --analyze)
+  let analysis: Analysis | null = null;
+  if (baseSeverity !== "cosmetic" || ANALYZE) {
+    analysis = await analyzeWithClaude(diff);
+    if (analysis) {
+      console.log(`Claude verdict: ${analysis.risk_assessment}`);
+      if (analysis.action_required && analysis.action_items.length) {
+        console.log("Actions requises:");
+        for (const item of analysis.action_items) console.log(`  - ${item}`);
+      }
+    }
+  }
+
+  const finalSeverity = analysis?.severity ?? baseSeverity;
+  const shouldCreateIssue =
+    analysis?.action_required ?? finalSeverity === "breaking";
+  const discord = buildDiscordPayload(finalSeverity, diff, analysis);
+
+  // CI outputs
   if (process.env.GITHUB_OUTPUT) {
-    const Bun = globalThis.Bun;
-    const outputFile = process.env.GITHUB_OUTPUT;
-    const body = diff.summary.join("\\n");
-    await Bun.write(outputFile, `changed=true\nsummary<<EOF\n${diff.summary.join("\n")}\nEOF\n`);
+    const lines: string[] = [
+      `changed=true`,
+      `severity=${finalSeverity}`,
+      `create_issue=${shouldCreateIssue}`,
+      `summary<<EOFS`,
+      ...diff.summary,
+      `EOFS`,
+    ];
+    if (discord) {
+      lines.push(
+        `discord_title=${discord.title}`,
+        `discord_color=${discord.color}`,
+        `discord_description<<EOFD`,
+        discord.description,
+        `EOFD`,
+      );
+    }
+    if (analysis?.risk_assessment) {
+      lines.push(`risk_assessment=${analysis.risk_assessment}`);
+    }
+    await Bun.write(process.env.GITHUB_OUTPUT, lines.join("\n") + "\n");
   }
 
   if (SAVE) {
@@ -278,8 +480,8 @@ async function main(): Promise<void> {
     console.log("\nManifest updated.");
   }
 
-  // Exit 1 to signal "changes detected" (useful for CI)
-  if (!SAVE) process.exit(1);
+  // Exit 1 to signal "changes detected" (local use only, not in CI)
+  if (!SAVE && !process.env.GITHUB_OUTPUT) process.exit(1);
 }
 
 main().catch((e) => {
