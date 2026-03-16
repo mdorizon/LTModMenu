@@ -10,6 +10,7 @@ import { renderFocus } from "@features/focus/ui/focus-view";
 import { renderMissions } from "@features/missions/ui/missions-view";
 import { restoreMissionPanelHide } from "@features/missions/mission-panel-hide";
 import { tryAutoRejoin } from "@features/focus/focus-bot";
+import { startSessionSaver, trySessionRestore } from "@features/session/session-restore";
 import { startAutoSave } from "@core/storage";
 import { initSceneCache } from "@features/teleport/teleport";
 import { initThemeSync } from "./theme";
@@ -203,12 +204,13 @@ export function initHUD(): void {
 
   // ── Start auto-save ──
   startAutoSave();
+  startSessionSaver();
 
   // ── Restore persisted UI state ──
   restoreMissionPanelHide();
 
-  // ── Auto-rejoin focus session if bot was active before reload ──
-  tryAutoRejoin();
+  // ── Restore previous session (lobby, map, position) then auto-rejoin focus ──
+  trySessionRestore().then(() => tryAutoRejoin());
 }
 
 export function tryInit(): void {
