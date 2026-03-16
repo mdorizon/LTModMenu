@@ -1,4 +1,6 @@
 import { mkHeader, bindNav, type RenderFn } from "@ui/components";
+import { showModal } from "@ui/modal";
+import { syncTheme } from "@ui/theme";
 import { getTrackedPlayers, type TrackedPlayer } from "../player-tracker";
 import { renderPlayerActions } from "./player-actions-view";
 
@@ -79,10 +81,10 @@ function getAllFriends(onMapPlayers: TrackedPlayer[]): FriendEntry[] {
 
 function mkTabs(activeTab: TabFilter, idPrefix: string, friendCount: number): string {
   return '<div class="lt-tabs">' +
-    '<button class="lt-tab' + (activeTab === "all" ? " lt-tab-active" : "") +
-    '" id="' + idPrefix + '-all">All</button>' +
     '<button class="lt-tab' + (activeTab === "friends" ? " lt-tab-active" : "") +
     '" id="' + idPrefix + '-friends">Friends (' + friendCount + ')</button>' +
+    '<button class="lt-tab' + (activeTab === "all" ? " lt-tab-active" : "") +
+    '" id="' + idPrefix + '-all">All</button>' +
     "</div>";
 }
 
@@ -127,11 +129,8 @@ function renderFriendList(
     ? friends.filter((f) => matchesQuery(query, f.displayName, f.username))
     : friends;
 
-  const shown = filtered.slice(0, MAX_RESULTS);
-  const remaining = filtered.length - shown.length;
-
-  container.innerHTML = shown.length > 0
-    ? shown.map((f, i) => {
+  container.innerHTML = filtered.length > 0
+    ? '<div class="lt-friend-scroll">' + filtered.map((f, i) => {
         if (f.onMap && f.player) {
           return '<button class="lt-item" id="lt-pf-' + i + '">' +
             nameHtml(f.displayName, f.username) +
@@ -149,13 +148,10 @@ function renderFriendList(
           nameHtml(f.displayName, f.username) +
           '<span class="lt-sub">' + status + "</span>" +
           "</div>";
-      }).join("") +
-      (remaining > 0
-        ? '<div class="lt-empty">+ ' + remaining + " more...</div>"
-        : "")
+      }).join("") + "</div>"
     : '<div class="lt-empty">' + (query ? "No match" : "No friends yet") + "</div>";
 
-  shown.forEach((f, i) => {
+  filtered.forEach((f, i) => {
     if (f.player) {
       const el = document.getElementById("lt-pf-" + i);
       if (el) el.onclick = () => onSelect(f.player!);
@@ -165,7 +161,7 @@ function renderFriendList(
 
 function openPlayerModal(
   onSelect: (p: TrackedPlayer) => void,
-  initialTab: TabFilter = "all",
+  initialTab: TabFilter = "friends",
 ): void {
   const existing = document.getElementById("lt-players-modal");
   if (existing) existing.remove();
@@ -178,7 +174,7 @@ function openPlayerModal(
     '<div class="lt-pm-box">' +
     '<div class="lt-pm-header">' +
     '<span class="lt-pm-title" id="lt-pm-title">Players</span>' +
-    '<button class="lt-pm-close">X</button>' +
+    '<button class="lt-pm-close">\u00d7</button>' +
     "</div>" +
     '<input class="lt-pm-search" placeholder="Search..." />' +
     '<div id="lt-pm-tabs"></div>' +
@@ -186,6 +182,7 @@ function openPlayerModal(
     "</div>";
 
   document.body.appendChild(overlay);
+  syncTheme(overlay);
 
   const grid = document.getElementById("lt-pm-grid")!;
   const title = document.getElementById("lt-pm-title")!;
@@ -304,27 +301,14 @@ function escHtml(s: string): string {
 }
 
 function showFriendsInfoModal(): void {
-  const existing = document.getElementById("lt-modal-overlay");
-  if (existing) existing.remove();
-
-  const overlay = document.createElement("div");
-  overlay.id = "lt-modal-overlay";
-  overlay.innerHTML =
-    '<div id="lt-modal">' +
-    '<div id="lt-modal-title">Friends list</div>' +
-    '<div id="lt-modal-msg">' +
-    "Only friends whose names have been captured are shown. " +
-    "Names are learned when a friend is seen on the same map or connects to the lobby.<br><br>" +
-    "Log out and back in to refresh online statuses." +
-    "</div>" +
-    '<div id="lt-modal-actions">' +
-    '<button id="lt-modal-ok" style="background:#2a2a50;border-color:#4a4a7a;color:#c8c0e0;">OK</button>' +
-    "</div>" +
-    "</div>";
-
-  document.body.appendChild(overlay);
-  document.getElementById("lt-modal-ok")!.onclick = () => overlay.remove();
-  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  showModal({
+    title: "Friends list",
+    message:
+      "Only friends whose names have been captured are shown. " +
+      "Names are learned when a friend is seen on the same map or connects to the lobby.<br><br>" +
+      "Log out and back in to refresh online statuses.",
+    buttons: [{ label: "OK", onClick() {} }],
+  });
 }
 
 let activeRefreshId: ReturnType<typeof setInterval> | null = null;
@@ -348,7 +332,7 @@ export function renderPlayers(
 ): void {
   cleanupListeners();
 
-  let currentTab: TabFilter = "all";
+  let currentTab: TabFilter = "friends";
 
   const searchInput = () => document.getElementById("lt-player-search") as HTMLInputElement | null;
   const resultsDiv = () => document.getElementById("lt-player-results");

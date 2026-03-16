@@ -4,6 +4,7 @@ import { getPos, getCurrentMap, switchLobby, lobbyLabel } from "@core/game";
 import { doTP, doInterMapTP } from "@features/teleport/teleport";
 import { visitBurrow } from "@features/teleport/burrow-visit";
 import { notify } from "@ui/status-bar";
+import { syncTheme } from "@ui/theme";
 
 interface SessionSnapshot {
   lobby: string;
@@ -20,10 +21,6 @@ const STORAGE_KEY = "session";
 const ENABLED_KEY = "sessionRestoreEnabled";
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const SAVE_INTERVAL_MS = 10_000;
-const THEME_VARS = [
-  "--lt-bg", "--lt-bg-secondary", "--lt-border", "--lt-border-light",
-  "--lt-text", "--lt-text-muted", "--lt-text-title", "--lt-accent", "--lt-shadow",
-];
 
 let saveTimer: ReturnType<typeof setInterval> | null = null;
 let cancelled = false;
@@ -185,16 +182,6 @@ function formatAge(ms: number): string {
 
 // ── Restore modal ──
 
-function syncTheme(el: HTMLElement): void {
-  const hud = document.getElementById("lt-hud");
-  if (!hud) return;
-  const s = getComputedStyle(hud);
-  for (const v of THEME_VARS) {
-    const val = s.getPropertyValue(v).trim();
-    if (val) el.style.setProperty(v, val);
-  }
-}
-
 interface RestoreOverlay {
   setStatus: (msg: string) => void;
   close: () => void;
@@ -217,9 +204,9 @@ function showRestoreOverlay(saved: SessionSnapshot): RestoreOverlay {
     '<div id="lt-modal">' +
     '<div id="lt-modal-title">Restoring session</div>' +
     '<div id="lt-modal-msg">' +
-      '<span style="font-size:16px;color:var(--lt-accent,#8a8abe);">' + detail + "</span>" +
+      '<span style="font-size:13px;color:var(--lt-accent,#8a8abe);">' + detail + "</span>" +
     "</div>" +
-    '<div id="lt-modal-status" style="font-size:15px;color:var(--lt-text-muted,#6a6a9a);margin-bottom:14px;">Loading... (' + age + ' ago)</div>' +
+    '<div id="lt-modal-status" style="font-size:12px;color:var(--lt-text-muted,#6a6a9a);margin-bottom:10px;">Loading... (' + age + ' ago)</div>' +
     '<div id="lt-modal-actions"><button id="lt-modal-toggle" class="lt-action lt-success" ' +
       'style="flex:1;margin:0;">Session Restore: ON</button></div>' +
     "</div>";

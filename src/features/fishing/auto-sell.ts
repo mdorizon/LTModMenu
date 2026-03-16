@@ -152,13 +152,13 @@ export function updateAutoSellHUD(): void {
 
 export function renderAutoSellStats(): string {
   return '<div class="lt-sep"></div>' +
-    '<div class="lt-stat-row" style="font-size:15px;color:var(--lt-text-muted, #6a6a9a);">' +
+    '<div class="lt-stat-row" style="font-size:12px;color:var(--lt-text-muted, #6a6a9a);">' +
     '<span>Auto-Sold</span><span id="lt-auto-sold">' + autoSoldLabel() + '</span></div>';
 }
 
 export function renderAutoSellButton(): string {
   return '<button class="lt-action ' + (config.enabled ? 'lt-success' : 'lt-muted') + '" id="lt-auto-sell" style="flex:1;margin:0;width:auto;">' +
-    'AUTO-SELL: ' + (config.enabled ? 'ON' : 'OFF') + '</button>';
+    'Auto-Sell: ' + (config.enabled ? 'On' : 'Off') + '</button>';
 }
 
 export type SellConfigKey = "keepCommon" | "keepUncommon" | "keepRare" | "keepEpic" | "keepLegendary" | "keepSecret" | "keepShiny" | "keepEvent";

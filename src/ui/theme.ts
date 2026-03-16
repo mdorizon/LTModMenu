@@ -91,6 +91,22 @@ function applyThemeFromSite(): void {
   log("THEME", "Theme synced from site (primary: " + primary + ")");
 }
 
+const THEME_VARS = [
+  "--lt-bg", "--lt-bg-secondary", "--lt-border", "--lt-border-light",
+  "--lt-text", "--lt-text-muted", "--lt-text-title", "--lt-input-bg",
+  "--lt-accent", "--lt-shadow",
+];
+
+export function syncTheme(el: HTMLElement): void {
+  const hud = document.getElementById("lt-hud");
+  if (!hud) return;
+  const s = getComputedStyle(hud);
+  for (const v of THEME_VARS) {
+    const val = s.getPropertyValue(v).trim();
+    if (val) el.style.setProperty(v, val);
+  }
+}
+
 export function initThemeSync(): void {
   if (siteThemeAvailable()) {
     applyThemeFromSite();
