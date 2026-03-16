@@ -1,4 +1,5 @@
 import { mkHeader, mkCoin, bindNav, type RenderFn } from "@ui/components";
+import { iconCheckCircle } from "@ui/icons";
 import { notify } from "@ui/status-bar";
 import {
   getDailyMissions,
@@ -12,10 +13,7 @@ import {
 } from "../missions";
 import { isMissionPanelHidden, toggleMissionPanelHide } from "../mission-panel-hide";
 
-const CHECK_CIRCLE =
-  '<div style="width:20px;height:20px;border-radius:50%;background:#5ad85a;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
-  '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' +
-  "</div>";
+const CHECK_CIRCLE = iconCheckCircle();
 
 function emptyCircle(id: string): string {
   return '<button id="' + id + '" style="width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,0.15);' +
@@ -32,15 +30,15 @@ function missionRow(
   const pct = Math.min(100, Math.round((current / mission.requiredAmount) * 100));
 
   return (
-    '<div style="padding:7px 14px;display:flex;gap:10px;align-items:center;">' +
+    '<div style="padding:6px 12px;display:flex;gap:10px;align-items:center;">' +
     (done ? CHECK_CIRCLE : emptyCircle(prefix + "-" + index)) +
     '<div style="flex:1;min-width:0;">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
-    '<span style="font-size:14px;color:var(--lt-text, #c8c0e0);">' + mission.title + "</span>" +
-    '<span style="font-size:13px;color:#fff;white-space:nowrap;">' + mkCoin(mission.pointsReward) + "</span>" +
+    '<span style="font-size:12px;color:var(--lt-text, #c8c0e0);">' + mission.title + "</span>" +
+    '<span style="font-size:11px;color:#fff;white-space:nowrap;">' + mkCoin(mission.pointsReward) + "</span>" +
     "</div>" +
     '<div style="display:flex;align-items:center;gap:8px;margin-top:4px;">' +
-    '<span style="font-size:12px;color:rgba(255,255,255,0.45);white-space:nowrap;">' +
+    '<span style="font-size:10px;color:rgba(255,255,255,0.45);white-space:nowrap;">' +
     Math.min(current, mission.requiredAmount) + "/" + mission.requiredAmount +
     "</span>" +
     '<div style="flex:1;background:rgba(255,255,255,0.06);border-radius:3px;height:4px;overflow:hidden;">' +
@@ -111,35 +109,35 @@ export function renderMissions(
 
     (!ready
       ? '<div class="lt-empty">Mission store not loaded yet</div>'
-      : '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px 4px;">' +
-        '<span style="font-size:16px;font-weight:700;color:#e0d8f0;">Daily</span>' +
+      : '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px 4px;">' +
+        '<span style="font-size:13px;font-weight:700;color:#e0d8f0;">Daily</span>' +
         '<span style="display:flex;align-items:center;gap:10px;">' +
-        '<span id="lt-mission-timer" style="font-size:13px;color:rgba(255,255,255,0.45);font-variant-numeric:tabular-nums;"></span>' +
-        '<span style="font-size:13px;color:#8a8a9a;">' +
+        '<span id="lt-mission-timer" style="font-size:10px;color:rgba(255,255,255,0.45);font-variant-numeric:tabular-nums;"></span>' +
+        '<span style="font-size:10px;color:#8a8a9a;">' +
         (dailies.length - dailyPending) + "/" + dailies.length +
         "</span></span></div>" +
 
         renderMissionList(dailies, "lt-d") +
 
         (dailyPending > 0
-          ? '<button class="lt-action lt-success" id="lt-complete-daily" style="margin:4px 14px;font-size:13px;">' +
+          ? '<button class="lt-action lt-success" id="lt-complete-daily" style="margin:4px 10px;font-size:11px;">' +
             "Complete All " + mkCoin(dailyRewards) + "</button>"
           : "") +
 
         '<div class="lt-sep"></div>' +
 
-        '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px 4px;">' +
-        '<span style="font-size:16px;font-weight:700;color:#e0d8f0;">Weekly</span>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px 4px;">' +
+        '<span style="font-size:13px;font-weight:700;color:#e0d8f0;">Weekly</span>' +
         '<span style="display:flex;align-items:center;gap:10px;">' +
-        '<span id="lt-mission-timer-weekly" style="font-size:13px;color:rgba(255,255,255,0.45);font-variant-numeric:tabular-nums;"></span>' +
-        '<span style="font-size:13px;color:#8a8a9a;">' +
+        '<span id="lt-mission-timer-weekly" style="font-size:10px;color:rgba(255,255,255,0.45);font-variant-numeric:tabular-nums;"></span>' +
+        '<span style="font-size:10px;color:#8a8a9a;">' +
         (weeklies.length - weeklyPending) + "/" + weeklies.length +
         "</span></span></div>" +
 
         renderMissionList(weeklies, "lt-w") +
 
         (weeklyPending > 0
-          ? '<button class="lt-action lt-success" id="lt-complete-weekly" style="margin:4px 14px;font-size:13px;">' +
+          ? '<button class="lt-action lt-success" id="lt-complete-weekly" style="margin:4px 10px;font-size:11px;">' +
             "Complete All " + mkCoin(weeklyRewards) + "</button>"
           : "")) +
 

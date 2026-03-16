@@ -30,6 +30,7 @@ import {
   getDisplaySong,
   formatTime,
 } from "../music-info";
+import { syncTheme } from "@ui/theme";
 
 const SHORT: Record<string, string> = {
   "Cast-Impact": "Impact",
@@ -53,34 +54,12 @@ const SHORT: Record<string, string> = {
   "Reel-Click": "Reel Clk",
 };
 
-const THEME_VARS = [
-  "--lt-bg", "--lt-bg-secondary", "--lt-border", "--lt-border-light",
-  "--lt-text", "--lt-text-muted", "--lt-text-title", "--lt-accent", "--lt-shadow",
-];
-
-// SVG icons
-function svg16(d: string, s = 14): string {
-  return '<svg width="' + s + '" height="' + s + '" viewBox="0 0 16 16" fill="currentColor">' + d + '</svg>';
-}
-function svg256(d: string, s = 14): string {
-  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + s + '" height="' + s + '" viewBox="0 0 256 256" fill="currentColor">' + d + '</svg>';
-}
-const ICON_PLAY = svg16('<polygon points="5,2 5,14 13,8"/>');
-const ICON_PAUSE = svg16('<rect x="3" y="3" width="3.5" height="10" rx="1"/><rect x="9.5" y="3" width="3.5" height="10" rx="1"/>');
-const ICON_PLAY_SM = svg16('<polygon points="5,2 5,14 13,8"/>', 10);
-// Game icons (Phosphor, viewBox 256)
-const ICON_VOL = svg256('<path d="M160,32.25V223.69a8.29,8.29,0,0,1-3.91,7.18,8,8,0,0,1-9-.56l-65.57-51A4,4,0,0,1,80,176.16V79.84a4,4,0,0,1,1.55-3.15l65.57-51a8,8,0,0,1,10,.16A8.27,8.27,0,0,1,160,32.25ZM60,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H60a4,4,0,0,0,4-4V84A4,4,0,0,0,60,80Zm126.77,20.84a8,8,0,0,0-.72,11.3,24,24,0,0,1,0,31.72,8,8,0,1,0,12,10.58,40,40,0,0,0,0-52.88A8,8,0,0,0,186.74,100.84Zm40.89-26.17a8,8,0,1,0-11.92,10.66,64,64,0,0,1,0,85.34,8,8,0,1,0,11.92,10.66,80,80,0,0,0,0-106.66Z"/>');
-const ICON_MUTE = svg256('<path d="M213.92,210.62a8,8,0,1,1-11.84,10.76L160,175.09v48.6a8.29,8.29,0,0,1-3.91,7.18,8,8,0,0,1-9-.56l-65.55-51A4,4,0,0,1,80,176.18V87.09L42.08,45.38A8,8,0,1,1,53.92,34.62Zm-27.21-55.46a8,8,0,0,0,11.29-.7,40,40,0,0,0,0-52.88,8,8,0,1,0-12,10.57,24,24,0,0,1,0,31.72A8,8,0,0,0,186.71,155.16Zm40.92-80.49a8,8,0,1,0-11.92,10.66,64,64,0,0,1,0,85.34,8,8,0,1,0,11.92,10.66,80,80,0,0,0,0-106.66ZM153,119.87a4,4,0,0,0,7-2.7V32.25a8.27,8.27,0,0,0-2.88-6.4,8,8,0,0,0-10-.16L103.83,59.33a4,4,0,0,0-.5,5.85ZM60,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H60a4,4,0,0,0,4-4V84A4,4,0,0,0,60,80Z"/>');
-
-function syncTheme(el: HTMLElement): void {
-  const hud = document.getElementById("lt-hud");
-  if (!hud) return;
-  const s = getComputedStyle(hud);
-  for (const v of THEME_VARS) {
-    const val = s.getPropertyValue(v).trim();
-    if (val) el.style.setProperty(v, val);
-  }
-}
+import { iconPlay, iconPause, iconVolume, iconMute } from "@ui/icons";
+const ICON_PLAY = iconPlay();
+const ICON_PAUSE = iconPause();
+const ICON_PLAY_SM = iconPlay(10);
+const ICON_VOL = iconVolume();
+const ICON_MUTE = iconMute();
 
 function buildMusicCard(local: boolean, paused: boolean, musicMuted: boolean, musicVol: number): string {
   let html = '<div class="lt-sm-music-card">';

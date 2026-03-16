@@ -37,23 +37,13 @@ export function refreshStatusBar(): void {
   bar.innerHTML = renderBadges();
 }
 
-const THEME_VARS = ["--lt-bg", "--lt-bg-secondary", "--lt-border", "--lt-text", "--lt-text-muted", "--lt-accent"];
+import { syncTheme } from "./theme";
 
 const MAX_TOASTS = 3;
 const DOT_MS = 400;
 const DOTS = [".", "..", "..."];
 
 let persistent: { el: HTMLElement; timer: ReturnType<typeof setInterval> } | null = null;
-
-function syncTheme(container: HTMLElement): void {
-  const hud = document.getElementById("lt-hud");
-  if (!hud) return;
-  const s = getComputedStyle(hud);
-  for (const v of THEME_VARS) {
-    const val = s.getPropertyValue(v).trim();
-    if (val) container.style.setProperty(v, val);
-  }
-}
 
 function getContainer(): HTMLElement {
   let c = document.getElementById("lt-toast-container");
