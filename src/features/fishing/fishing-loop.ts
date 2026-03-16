@@ -101,7 +101,7 @@ export function updateHUD(): void {
   if (shinyEl) shinyEl.textContent = String(st.shiny);
   const eventRow = el("lt-event-row");
   if (eventRow) {
-    eventRow.style.display = (window.__fishingFrenzyActive || st.event > 0) ? "" : "none";
+    eventRow.style.display = st.event > 0 ? "" : "none";
   }
   const eventEl = el("lt-event");
   if (eventEl) eventEl.textContent = String(st.event);
