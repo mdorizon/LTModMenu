@@ -1,7 +1,13 @@
 import { loadData, saveData } from "@core/storage";
 import { log } from "@core/logger";
-import { setStatus, clearStatus } from "@ui/status-bar";
+
 import { findPlaySoundFn } from "@core/module-resolver";
+
+// ── Howler-based sound hook ──
+// In v2, the webpack sound map is inside an inaccessible closure.
+// We hook Howl.prototype.play directly and identify sounds by URL.
+// A persistent URL→name map (localStorage) survives page reloads.
+// findPlaySoundFn is still attempted as a best-effort tagger.
 
 // ── Music pause (Audio.prototype.play interception) ──
 
@@ -141,52 +147,55 @@ export const CATEGORIES: Record<string, string[]> = {
 };
 
 const mutedSounds: Set<string> = new Set(loadData<string[]>("mutedSounds", []));
+const urlToName: Map<string, string> = new Map(
+  Object.entries(loadData<Record<string, string>>("soundUrlMap", {})),
+);
+
 let hooked = false;
-let playSoundFn: ((name: string) => void) | null = null;
+let tagged = false;
+let origPlay: ((id?: number) => number) | null = null;
+let taggingName: string | null = null;
+
+function getSrc(howl: any): string {
+  const s = howl._src;
+  return Array.isArray(s) ? s[0] || "" : s || "";
+}
 
 export function initSoundHook(): void {
   if (hooked) return;
 
   function tryHook(): boolean {
-    if (!window.__wpRequire || typeof Howl === "undefined") return false;
+    if (typeof Howl === "undefined") return false;
 
-    const playSound = findPlaySoundFn(window.__wpRequire);
-    if (!playSound) return false;
+    origPlay = Howl.prototype.play;
 
-    const origPlay = Howl.prototype.play;
+    Howl.prototype.play = function (this: any, id?: number): number {
+      // Tagging phase: record name→URL, suppress actual play
+      if (taggingName) {
+        this._ltName = taggingName;
+        const src = getSrc(this);
+        if (src) urlToName.set(src, taggingName);
+        return 0;
+      }
 
-    // Phase 1: tag each Howl instance with its sound name (silently)
-    let currentName: string | null = null;
-    Howl.prototype.play = function () {
-      if (currentName) (this as any)._ltName = currentName;
-      return 0;
-    };
+      // Normal phase: resolve name and check mute
+      const src = getSrc(this);
+      const name = this._ltName || (src ? urlToName.get(src) : null);
+      if (name) {
+        if (!this._ltName) this._ltName = name;
+        if (mutedSounds.has(name)) return 0;
+      }
 
-    let tagged = 0;
-    const _warn = console.warn;
-    console.warn = () => {};
-    for (const name of SFX_NAMES) {
-      currentName = name;
-      try { playSound(name); tagged++; } catch (_e) { /* not loaded */ }
-    }
-    currentName = null;
-    console.warn = _warn;
-
-    if (tagged === 0) {
-      Howl.prototype.play = origPlay;
-      return false;
-    }
-
-    // Phase 2: permanent play filter
-    Howl.prototype.play = function (this: any, id?: number) {
-      if (this._ltName && mutedSounds.has(this._ltName)) return 0;
-      return origPlay.call(this, id);
+      return origPlay!.call(this, id);
     };
 
     hooked = true;
-    playSoundFn = playSound;
-    log("SOUND", "Hook installed, tagged " + tagged + "/" + SFX_NAMES.length);
-    updateBadge();
+    tagged = urlToName.size >= SFX_NAMES.length;
+    log("SOUND", "Hook installed" + (urlToName.size > 0
+      ? " (" + urlToName.size + " sounds from cache)"
+      : ""));
+    // Try tagging via findPlaySoundFn in background
+    scheduleTagging();
     return true;
   }
 
@@ -197,9 +206,58 @@ export function initSoundHook(): void {
     retries++;
     if (tryHook() || retries >= 30) {
       clearInterval(interval);
-      if (!hooked) log("SOUND", "Failed to hook after 30 retries");
+      if (!hooked) log("SOUND", "Failed to hook Howl after 30 retries");
     }
   }, 1000);
+}
+
+function scheduleTagging(): void {
+  // If already fully tagged from cache, skip
+  if (tagged) return;
+
+  let retries = 0;
+  const interval = setInterval(() => {
+    retries++;
+    if (!window.__wpRequire) {
+      if (retries >= 30) {
+        clearInterval(interval);
+        log("SOUND", "wpRequire unavailable — using cached map (" + urlToName.size + " entries)");
+      }
+      return;
+    }
+
+    const playSound = findPlaySoundFn(window.__wpRequire);
+    if (!playSound) {
+      if (retries >= 30) {
+        clearInterval(interval);
+        log("SOUND", "findPlaySoundFn failed — using cached map (" + urlToName.size + " entries)");
+      }
+      return;
+    }
+
+    clearInterval(interval);
+    runTagging(playSound);
+  }, 1000);
+}
+
+function runTagging(playSound: (name: string) => void): void {
+  const _warn = console.warn;
+  console.warn = () => {};
+  let count = 0;
+  for (const name of SFX_NAMES) {
+    taggingName = name;
+    try { playSound(name); count++; } catch { /* not loaded */ }
+  }
+  taggingName = null;
+  console.warn = _warn;
+
+  if (count > 0) {
+    tagged = true;
+    const map: Record<string, string> = {};
+    urlToName.forEach((v, k) => { map[k] = v; });
+    saveData("soundUrlMap", map);
+    log("SOUND", "Tagged " + count + "/" + SFX_NAMES.length + " sounds");
+  }
 }
 
 export function isMuted(name: string): boolean {
@@ -210,7 +268,6 @@ export function toggleSound(name: string): boolean {
   if (mutedSounds.has(name)) mutedSounds.delete(name);
   else mutedSounds.add(name);
   persist();
-  updateBadge();
   return mutedSounds.has(name);
 }
 
@@ -228,7 +285,6 @@ export function toggleCategory(cat: string): boolean {
     else mutedSounds.add(s);
   }
   persist();
-  updateBadge();
   return !allMuted;
 }
 
@@ -254,7 +310,6 @@ export function applyPreset(preset: Preset): void {
       break;
   }
   persist();
-  updateBadge();
 }
 
 export function getMutedCount(): number {
@@ -270,25 +325,41 @@ export function isFishingMuted(): boolean {
 }
 
 export function previewSound(name: string): void {
-  if (!playSoundFn) return;
-  const wasMuted = mutedSounds.has(name);
-  if (wasMuted) mutedSounds.delete(name);
-  try { playSoundFn(name); } catch { /* ignore */ }
-  if (wasMuted) mutedSounds.add(name);
+  if (!origPlay) return;
+  const howl = findHowlByName(name);
+  if (!howl) return;
+  origPlay.call(howl);
+}
+
+function findHowlByName(name: string): any | null {
+  const howls = (Howler as any)?._howls;
+  if (!howls || !Array.isArray(howls)) return null;
+
+  // By _ltName tag
+  for (const h of howls) {
+    if (h._ltName === name) return h;
+  }
+
+  // By URL→name map
+  for (const [url, n] of urlToName) {
+    if (n !== name) continue;
+    for (const h of howls) {
+      if (getSrc(h) === url) return h;
+    }
+  }
+
+  return null;
 }
 
 export function isHooked(): boolean {
   return hooked;
 }
 
+export function isTagged(): boolean {
+  return tagged;
+}
+
 function persist(): void {
   saveData("mutedSounds", Array.from(mutedSounds));
 }
 
-function updateBadge(): void {
-  if (mutedSounds.size > 0) {
-    setStatus("sounds", { label: "MUTED " + mutedSounds.size, color: "#e0a050", bg: "#2a2010" });
-  } else {
-    clearStatus("sounds");
-  }
-}
