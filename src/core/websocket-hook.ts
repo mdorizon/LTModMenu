@@ -2,6 +2,7 @@
 
 import { log, logWsAll } from "./logger";
 import { loadData, saveData } from "./storage";
+import { notify, setStatus, clearStatus } from "@ui/status-bar";
 
 if (!window.__playerProfiles) {
   window.__playerProfiles = new Map();
@@ -351,8 +352,17 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
           }
 
           if (eventName === "fishingFrenzyUpdate" && eventData) {
+            const wasActive = window.__fishingFrenzyActive;
             window.__fishingFrenzyActive = !!eventData.isFrenzyActive;
             log("WS", "Fishing frenzy active: " + window.__fishingFrenzyActive);
+
+            if (window.__fishingFrenzyActive && !wasActive) {
+              setStatus("frenzy", { label: "FRENZY", color: "#f0e060", bg: "#3a3010" });
+              notify("Fishing Frenzy started!", "success", 5000);
+            } else if (!window.__fishingFrenzyActive && wasActive) {
+              clearStatus("frenzy");
+              notify("Fishing Frenzy ended", "info", 5000);
+            }
           }
 
           if (eventName === "fishing-result" && eventData) {

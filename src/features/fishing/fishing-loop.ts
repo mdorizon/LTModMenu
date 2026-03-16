@@ -182,7 +182,7 @@ async function waitForBite(): Promise<boolean> {
       log("BOT", "[2] TIMEOUT 90s waiting for bite");
       return false;
     }
-    await sleep(100);
+    await sleep(window.__fishingFrenzyActive ? 20 : 100);
   }
   return false;
 }
@@ -429,7 +429,7 @@ export async function fishingLoop(): Promise<void> {
       log("BOT", "[5] No fish data, skipping stats");
     }
 
-    // Brief pause before next cast
-    await sleep(500 + Math.random() * 500);
+    // Brief pause before next cast (shorter during Fishing Frenzy)
+    await sleep(window.__fishingFrenzyActive ? 100 + Math.random() * 100 : 500 + Math.random() * 500);
   }
 }
