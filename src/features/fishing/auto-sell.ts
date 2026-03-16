@@ -120,7 +120,12 @@ export async function flushSellQueue(): Promise<{ sold: number; gold: number } |
       const store = window.__stores?.useUserData;
       if (store) {
         const state = store.getState();
-        store.setState({ points: (state.points || 0) + goldGained });
+        const inv: any[] = state.fishInventory || [];
+        const idSet = new Set(ids);
+        store.setState({
+          points: (state.points || 0) + goldGained,
+          fishInventory: inv.filter((f: any) => !idSet.has(f.id)),
+        });
       }
     } catch (_e) { /* ignore */ }
 
