@@ -15,6 +15,7 @@ export interface ModalOptions {
   style?: "danger" | "warning" | "default";
   checkbox?: ModalCheckbox;
   buttons: ModalButton[];
+  dismissible?: boolean;
 }
 
 const borderColors: Record<string, string> = {
@@ -68,9 +69,11 @@ export function showModal(opts: ModalOptions): void {
     if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
   };
 
-  overlay.onclick = (e) => {
-    if (e.target === overlay) close();
-  };
+  if (opts.dismissible !== false) {
+    overlay.onclick = (e) => {
+      if (e.target === overlay) close();
+    };
+  }
 
   overlay.querySelectorAll<HTMLButtonElement>(".lt-modal-btn").forEach((btn) => {
     const idx = parseInt(btn.dataset.idx || "0", 10);

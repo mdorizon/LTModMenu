@@ -26,6 +26,10 @@ export interface LocalPlayer {
     takeOutFishingRod?: (direction: string) => void;
     removeFishingRod?: () => void;
   };
+  isInGoKart?: boolean;
+  kartVariant?: string;
+  enterGoKart?: (variant?: string) => void;
+  exitGoKart?: () => void;
   sit: (pose: string) => void;
   unsit?: (opts: { withCooldown: boolean; emitUnsit: boolean }) => void;
   setSitAnimation?: (anim: string) => void;

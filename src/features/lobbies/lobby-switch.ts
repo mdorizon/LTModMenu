@@ -1,4 +1,4 @@
-import { switchLobby, getCurrentLobby } from "@core/game";
+import { switchLobby, getCurrentLobby, lobbyLabel } from "@core/game";
 import { showTransitionOverlay } from "@ui/components";
 import { notify } from "@ui/status-bar";
 import { log } from "@core/logger";
@@ -50,7 +50,7 @@ export function bindLobbyButton(): void {
     const ok = switchLobby(target.id);
     if (ok) {
       btn.disabled = true;
-      btn.textContent = "Switching to " + target.id + "...";
+      btn.textContent = "Switching to " + lobbyLabel(target.id) + "...";
       log("LOBBY", "Joining least populated: " + target.id + " (" + target.count + " players)");
       const targetId = target.id;
       const start = Date.now();

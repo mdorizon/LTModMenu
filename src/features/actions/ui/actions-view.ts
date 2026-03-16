@@ -5,6 +5,10 @@ import { toggleNoclip, isNoclip } from "../noclip";
 import { getSpeedMultiplier, setSpeedMultiplier } from "../speed";
 import { toggleFreeCam, isFreeCam } from "../free-camera";
 import { toggleHitboxes, isHitboxes } from "../hitboxes";
+import {
+  isSessionRestoreEnabled, setSessionRestoreEnabled,
+  registerToggleButton, unregisterToggleButton,
+} from "@features/session/session-restore";
 
 export function renderActions(
   hud: HTMLElement,
@@ -31,6 +35,8 @@ export function renderActions(
     '<span class="lt-speed-label">Speed: x<span id="lt-speed-val">' + speed + '</span></span>' +
     '<input type="range" class="lt-slider" id="lt-speed-slider" min="1" max="10" step="1" value="' + speed + '" />' +
     "</div>" +
+    '<div class="lt-sep"></div>' +
+    '<button class="lt-action" id="lt-session-toggle"></button>' +
     "</div>" +
     '<div class="lt-warn">These actions are detectable by the server</div>';
   bindNav(renderMainFn, pages);
@@ -68,6 +74,19 @@ export function renderActions(
     btn.textContent = result.enabled ? "Hide Hitboxes" : "Show Hitboxes";
     btn.className = "lt-action " + (result.enabled ? "lt-danger" : "lt-primary");
   };
+
+  const sessionBtn = document.getElementById("lt-session-toggle") as HTMLButtonElement;
+  registerToggleButton(sessionBtn);
+  sessionBtn.onclick = () => setSessionRestoreEnabled(!isSessionRestoreEnabled());
+
+  // Cleanup when navigating away from this page
+  const obs = new MutationObserver(() => {
+    if (!document.getElementById("lt-session-toggle")) {
+      unregisterToggleButton(sessionBtn);
+      obs.disconnect();
+    }
+  });
+  obs.observe(hud, { childList: true });
 
   const slider = document.getElementById("lt-speed-slider") as HTMLInputElement;
   const valLabel = document.getElementById("lt-speed-val")!;

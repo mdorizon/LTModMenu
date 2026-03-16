@@ -56,6 +56,19 @@ export function getCurrentLobby(): string {
   return window.__currentLobby || "unknown";
 }
 
+const LOBBY_EMOJIS: Record<string, string> = {
+  ambient: "\uD83C\uDF43",
+  blossom: "\uD83C\uDF38",
+  cozy: "\u2615",
+  daydream: "\uD83D\uDCAD",
+};
+
+export function lobbyLabel(id: string): string {
+  const emoji = LOBBY_EMOJIS[id];
+  const name = id.charAt(0).toUpperCase() + id.slice(1);
+  return emoji ? emoji + " " + name : name;
+}
+
 export function switchLobby(targetLobby: string): boolean {
   if (window.__lobbySwitching) {
     log("ACTION", "switchLobby BLOCKED: switch already in progress");
