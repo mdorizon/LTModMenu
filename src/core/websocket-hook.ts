@@ -350,6 +350,11 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
             }
           }
 
+          if (eventName === "fishingFrenzyUpdate" && eventData) {
+            window.__fishingFrenzyActive = !!eventData.isFrenzyActive;
+            log("WS", "Fishing frenzy active: " + window.__fishingFrenzyActive);
+          }
+
           if (eventName === "fishing-result" && eventData) {
             const myId = window.__localPlayerId;
             if (myId && eventData.userId && String(eventData.userId) !== myId) {

@@ -55,21 +55,14 @@ export function initGlobalState(): void {
   window.__stores = {};
   window.__gameGlobals = null;
   window.__socketClient = null;
+  window.__fishingFrenzyActive = false;
 
   window.__waypoints = loadData<Waypoint[]>("waypoints", []);
-  window.__fishStats = loadData<FishStats>("fishStats", {
-    common: 0,
-    uncommon: 0,
-    rare: 0,
-    epic: 0,
-    legendary: 0,
-    secret: 0,
-    event: 0,
-    unknown: 0,
-    total: 0,
-    gold: 0,
-    last_fish: "",
-  });
+  const defaultStats: FishStats = {
+    common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0,
+    secret: 0, event: 0, shiny: 0, unknown: 0, total: 0, gold: 0, last_fish: "",
+  };
+  window.__fishStats = { ...defaultStats, ...loadData<FishStats>("fishStats", defaultStats) };
 
   log("STORAGE", "Global variables initialized");
   log("STORAGE", "Loaded waypoints: " + window.__waypoints.length);

@@ -95,6 +95,7 @@ declare global {
     __stores: LTStores;
     __gameGlobals: GameGlobals | null;
     __socketClient: SocketClient | null;
+    __fishingFrenzyActive: boolean;
     webpackChunk_N_E: unknown[];
   }
 }

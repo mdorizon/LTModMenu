@@ -6,6 +6,7 @@ export interface FishStats {
   legendary: number;
   secret: number;
   event: number;
+  shiny: number;
   unknown: number;
   total: number;
   gold: number;
