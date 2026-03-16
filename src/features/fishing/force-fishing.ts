@@ -1,7 +1,5 @@
 import { wsSend, getCurrentMap } from "@core/game";
 import { log } from "@core/logger";
-import { saveData, loadData } from "@core/storage";
-import { showModal } from "@ui/modal";
 import { setStatus, clearStatus } from "@ui/status-bar";
 import { FISHING_SEAT_IDS } from "./data/fishing-seats";
 
@@ -132,32 +130,8 @@ export function bindForceFishing(): void {
   btn.onclick = () => {
     if (forceFishingActive) {
       deactivate();
-      return;
-    }
-
-    if (loadData<boolean>("skipForceFishingWarning", false)) {
+    } else {
       activate();
-      return;
     }
-
-    showModal({
-      title: "Force Fishing",
-      message:
-        "Cette fonctionnalité force l'assise et le lancement de canne depuis n'importe où sur la map. " +
-        "Le serveur peut détecter un comportement anormal. Utilise à tes risques.",
-      style: "warning",
-      checkbox: { label: "Ne plus m'avertir" },
-      buttons: [
-        { label: "Annuler", style: "default", onClick: () => {} },
-        {
-          label: "Activer",
-          style: "warning",
-          onClick: (checked) => {
-            if (checked) saveData("skipForceFishingWarning", true);
-            activate();
-          },
-        },
-      ],
-    });
   };
 }

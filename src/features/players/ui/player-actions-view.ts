@@ -76,8 +76,7 @@ export function renderPlayerActions(
     ">" +
     burrowLabel +
     "</button>" +
-    "</div>" +
-    '<div class="lt-warn">Teleportation is detectable by the server</div>';
+    "</div>";
 
   bindNav(renderMainFn, pages);
   const back = document.getElementById("lt-back");

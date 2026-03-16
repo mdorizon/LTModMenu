@@ -407,8 +407,7 @@ export function renderPlayers(
     '<div id="lt-player-tabs"></div>' +
     '<div id="lt-player-results"></div>' +
     '<button class="lt-action lt-muted" id="lt-players-browse">Browse all</button>' +
-    "</div>" +
-    '<div class="lt-warn">Teleportation is detectable by the server</div>';
+    "</div>";
 
   const back = document.getElementById("lt-back");
   if (back) {

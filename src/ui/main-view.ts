@@ -1,7 +1,6 @@
 import {
   mkHeader,
   mkItem,
-  mkItemTag,
   bindNav,
   type RenderFn,
 } from "./components";
@@ -21,10 +20,10 @@ export function renderMain(
   hud.innerHTML =
     mkHeader("LTModMenu", false, "v" + __VERSION__) +
     '<div class="lt-body">' +
-    mkItemTag("lt-go-poi", "POIs", "DETECTABLE") +
-    mkItemTag("lt-go-tp", "Waypoints", "DETECTABLE") +
-    mkItemTag("lt-go-actions", "Actions", "DETECTABLE") +
-    mkItemTag("lt-go-players", "Players", "DETECTABLE") +
+    mkItem("lt-go-poi", "POIs") +
+    mkItem("lt-go-tp", "Waypoints") +
+    mkItem("lt-go-actions", "Actions") +
+    mkItem("lt-go-players", "Players") +
     mkItem("lt-go-fish", "Fishing") +
     mkItem("lt-go-focus", "Focus") +
     mkItem("lt-go-missions", "Missions") +
