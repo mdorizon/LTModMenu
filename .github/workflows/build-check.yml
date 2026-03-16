@@ -1,0 +1,30 @@
+name: Build Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
+
+      - name: Verify output exists
+        run: |
+          if [ ! -f dist/ltmodmenu.user.js ]; then
+            echo "::error::Build output missing: dist/ltmodmenu.user.js"
+            exit 1
+          fi
+          SIZE=$(wc -c < dist/ltmodmenu.user.js)
+          echo "Build OK — ${SIZE} bytes"

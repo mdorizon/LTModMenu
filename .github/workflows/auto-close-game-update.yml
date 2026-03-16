@@ -1,0 +1,41 @@
+name: Auto-close Game Update issues
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - "src/**"
+      - "gameFiles/manifest.json"
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Close resolved Game Update issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUES=$(gh issue list \
+            --repo "$GITHUB_REPOSITORY" \
+            --label "Game Update" \
+            --state open \
+            --json number,title \
+            --jq '.[].number')
+
+          if [ -z "$ISSUES" ]; then
+            echo "No open Game Update issues."
+            exit 0
+          fi
+
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          COMMIT_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
+          COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | head -1)
+
+          for ISSUE in $ISSUES; do
+            gh issue close "$ISSUE" \
+              --repo "$GITHUB_REPOSITORY" \
+              --comment "Résolu dans [\`${SHORT_SHA}\`](${COMMIT_URL}) — ${COMMIT_MSG}"
+            echo "Closed #${ISSUE}"
+          done

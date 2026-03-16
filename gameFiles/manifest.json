@@ -1,7 +1,7 @@
 {
-  "lastChecked": "2026-03-15T17:07:28.378Z",
-  "lastChanged": "2026-03-15T17:07:28.378Z",
-  "buildId": "Dr39pFXarZg5ve3mhV_-s",
+  "lastChecked": "2026-03-16T21:51:33.666Z",
+  "lastChanged": "2026-03-16T21:20:42.714Z",
+  "buildId": "DvJW7S5-un3qtJV8G273m",
   "chunks": {
     "18": {
       "filename": "/_next/static/chunks/18-bdbe4008f006778b.js",
@@ -152,8 +152,8 @@
       ]
     },
     "2380": {
-      "filename": "/_next/static/chunks/2380-55624d260d8e99ba.js",
-      "size": 790385,
+      "filename": "/_next/static/chunks/2380-a331d5ba797278f9.js",
+      "size": 790168,
       "modules": [
         9502,
         20079,
@@ -603,8 +603,8 @@
       ]
     },
     "5677": {
-      "filename": "/_next/static/chunks/5677-de530ae9a5167ba0.js",
-      "size": 668522,
+      "filename": "/_next/static/chunks/5677-ca516a3d54fd2f5d.js",
+      "size": 669477,
       "modules": [
         1989,
         3760,
@@ -906,14 +906,14 @@
       "size": 173023,
       "modules": []
     },
-    "webpack": {
-      "filename": "/_next/static/chunks/webpack-328418892cd76570.js",
-      "size": 4238,
+    "990a3170": {
+      "filename": "/_next/static/chunks/990a3170-e61d21ce509af372.js",
+      "size": 58447,
       "modules": []
     },
-    "25c8a87d": {
-      "filename": "/_next/static/chunks/25c8a87d-5b76b9f12cd6714f.js",
-      "size": 51344,
+    "webpack": {
+      "filename": "/_next/static/chunks/webpack-e30bef9d8b530c5d.js",
+      "size": 4238,
       "modules": []
     },
     "global": {
@@ -929,9 +929,9 @@
         98536
       ]
     },
-    "990a3170": {
-      "filename": "/_next/static/chunks/990a3170-e61d21ce509af372.js",
-      "size": 58447,
+    "25c8a87d": {
+      "filename": "/_next/static/chunks/25c8a87d-5b76b9f12cd6714f.js",
+      "size": 51344,
       "modules": []
     },
     "main": {
@@ -947,8 +947,8 @@
       "modules": []
     },
     "page": {
-      "filename": "/_next/static/chunks/app/page-d02fb4af1daa607e.js",
-      "size": 482463,
+      "filename": "/_next/static/chunks/app/page-d7e98abce74af7c1.js",
+      "size": 482247,
       "modules": [
         9667,
         12932,
@@ -956,16 +956,16 @@
         32936,
         56286,
         65749,
-        68618,
         69018,
         70891,
         79165,
-        79709
+        79709,
+        92991
       ]
     }
   },
   "css": [
-    "a53e3f85984e7151.css",
+    "ba0f0b098d78bb1d.css",
     "d38261e715b3739d.css"
   ]
 }

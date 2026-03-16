@@ -2,8 +2,12 @@ name: Check lofi.town game update
 
 on:
   schedule:
-    # Every 6 hours
-    - cron: "0 */6 * * *"
+    # 17h Paris : 15h UTC (été CEST) ou 16h UTC (hiver CET) — on lance les deux,
+    # le timezone gate skip celui qui tombe pas à la bonne heure.
+    # Mardi 9h Paris : 7h UTC (été) ou 8h UTC (hiver).
+    # Pas de week-end : le lundi rattrape les changements du week-end.
+    - cron: "0 15,16 * * 1,3,4,5"
+    - cron: "0 7,8 * * 2"
   workflow_dispatch: # manual trigger
 
 permissions:
@@ -14,93 +18,117 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      # Timezone gate : skip si c'est pas la bonne heure à Paris.
+      # ubuntu-latest a les tzdata, TZ=Europe/Paris gère le DST automatiquement.
+      - name: Timezone gate
+        id: tz
+        run: |
+          PARIS_HOUR=$(TZ=Europe/Paris date +%H)
+          DOW=$(TZ=Europe/Paris date +%u)  # 1=lun ... 7=dim
+          if [ "$DOW" = "2" ] && [ "$PARIS_HOUR" = "09" ]; then
+            echo "run=true" >> $GITHUB_OUTPUT
+          elif [ "$DOW" != "2" ] && [ "$PARIS_HOUR" = "17" ]; then
+            echo "run=true" >> $GITHUB_OUTPUT
+          else
+            echo "run=false" >> $GITHUB_OUTPUT
+            echo "Skip — Paris hour is ${PARIS_HOUR}h, not the target slot"
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.tz.outputs.run == 'true'
 
       - uses: oven-sh/setup-bun@v2
+        if: steps.tz.outputs.run == 'true'
         with:
           bun-version: latest
 
       - name: Check for game update
         id: check
-        run: |
-          bun run scripts/check-game-update.ts 2>&1 | tee /tmp/check-output.txt
-          EXIT_CODE=${PIPESTATUS[0]}
-          if [ $EXIT_CODE -eq 0 ]; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-          elif [ $EXIT_CODE -eq 1 ]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-            # Extract summary (everything after "=== GAME UPDATE DETECTED ===")
-            SUMMARY=$(sed -n '/=== GAME UPDATE DETECTED ===/,$ p' /tmp/check-output.txt | tail -n +2)
-            echo "summary<<EOF" >> $GITHUB_OUTPUT
-            echo "$SUMMARY" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-          else
-            echo "::error::Failed to check game update"
-            exit 1
-          fi
+        if: steps.tz.outputs.run == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: bun run scripts/check-game-update.ts --save
 
-      - name: Update manifest and push
-        if: steps.check.outputs.changed == 'true'
+      - name: Push manifest update
+        if: steps.tz.outputs.run == 'true' && steps.check.outputs.changed == 'true'
         run: |
-          bun run scripts/check-game-update.ts --save
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add gameFiles/manifest.json
+          git diff --cached --quiet && exit 0
           git commit -m "🔍 Update game manifest — lofi.town rebuild detected"
           git push
 
       - name: Create issue
         id: issue
-        if: steps.check.outputs.changed == 'true'
+        if: steps.tz.outputs.run == 'true' && steps.check.outputs.create_issue == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          SEVERITY="${{ steps.check.outputs.severity }}"
           ISSUE_URL=$(gh issue create \
-            --title "Mise à jour détectée sur lofi.town" \
+            --title "⚠️ Mise à jour lofi.town — intervention requise ($SEVERITY)" \
             --label "Game Update" \
-            --body "$(cat <<'EOF'
-          ## Quoi
+            --body "$(cat <<'ISSUE_EOF'
+          ## Mise à jour détectée
 
-          La CI a détecté un rebuild des chunks webpack de lofi.town.
+          La CI a détecté un rebuild de lofi.town qui nécessite une vérification du mod.
 
-          ## Pourquoi
+          ### Sévérité : `${{ steps.check.outputs.severity }}`
 
-          Les module IDs et la structure des chunks ont potentiellement changé. Le mod utilise une détection par signature (résiliente), mais des changements majeurs (nouvelles features, renommages de propriétés Zustand) peuvent nécessiter une intervention manuelle.
+          ### Analyse IA
 
-          ## Diff détecté
+          ${{ steps.check.outputs.risk_assessment }}
 
+          ### Diff
+
+          ```
           ${{ steps.check.outputs.summary }}
+          ```
 
-          ## Comment vérifier
+          ### Comment investiguer
 
-          Lancer `bun run scripts/check-game-update.ts` localement pour voir le diff complet. Vérifier que le mod fonctionne toujours en jeu (stores capturés, gameApp hookée, pêche fonctionnelle). Si de nouveaux modules sont apparus, analyser leur contenu pour détecter de nouvelles features exploitables. Mettre à jour `gameFiles/analysis/` si nécessaire.
+          ```bash
+          bun run scripts/check-game-update.ts --analyze
+          ```
 
-          ## Résultat attendu
-
-          Le mod fonctionne sans régression après la mise à jour. Si de nouvelles features ont été ajoutées au jeu, elles sont documentées dans `gameFiles/analysis/update-changelog.md`.
-          EOF
+          Vérifier que le mod fonctionne en jeu (stores capturés, gameApp hookée, pêche fonctionnelle).
+          Si de nouveaux modules sont apparus, analyser leur contenu.
+          Mettre à jour `gameFiles/analysis/update-changelog.md` si nécessaire.
+          ISSUE_EOF
           )")
           echo "url=$ISSUE_URL" >> $GITHUB_OUTPUT
 
       - name: Notify Discord
-        if: steps.check.outputs.changed == 'true'
+        if: steps.tz.outputs.run == 'true' && steps.check.outputs.discord_title != ''
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
-          # Escape summary for JSON (newlines → \n, quotes → \")
-          SUMMARY=$(echo '${{ steps.check.outputs.summary }}' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
           ISSUE_URL="${{ steps.issue.outputs.url }}"
 
-          curl -s -H "Content-Type: application/json" \
+          # Build description from multiline output
+          DESCRIPTION=$(cat <<'DESC_EOF'
+          ${{ steps.check.outputs.discord_description }}
+          DESC_EOF
+          )
+
+          # Append issue link if available
+          if [ -n "$ISSUE_URL" ]; then
+            DESCRIPTION="${DESCRIPTION}
+
+          📋 **Issue :** ${ISSUE_URL}"
+          fi
+
+          # Escape for JSON using python3
+          TITLE_JSON=$(printf '%s' "${{ steps.check.outputs.discord_title }}" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
+          DESC_JSON=$(printf '%s' "$DESCRIPTION" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
+
+          curl -sf -H "Content-Type: application/json" \
             -d "{
               \"embeds\": [{
-                \"title\": \"Mise à jour lofi.town détectée\",
-                \"color\": 16750848,
-                \"description\": \"${SUMMARY}\",
-                \"fields\": [{
-                  \"name\": \"Issue\",
-                  \"value\": \"${ISSUE_URL}\"
-                }],
+                \"title\": ${TITLE_JSON},
+                \"color\": ${{ steps.check.outputs.discord_color }},
+                \"description\": ${DESC_JSON},
                 \"footer\": {
                   \"text\": \"LTModMenu CI\"
                 }
