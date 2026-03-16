@@ -62,6 +62,7 @@ Chaque feature a `ui/*-view.ts` (fonction `render*(hud, renderMainFn, pages)`) e
 | WS protocol/events | `src/core/docs/ws-protocol-internals.md` |
 | Lobby switch | `src/core/docs/lobby-switch-internals.md` |
 | Missions | `src/features/missions/docs/missions-internals.md` |
+| Session restore | `src/features/session/docs/session-restore-internals.md` |
 | Exploits non implementes | `src/core/docs/game-changers.md` |
 
 Analyses webpack du client dans `gameFiles/analysis/` :
