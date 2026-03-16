@@ -70,12 +70,12 @@ export function refreshToastTheme(): void {
   if (c) syncTheme(c);
 }
 
-function makeToast(message: string, type: string): HTMLElement {
+function makeToast(message: string, type: string, html = false): HTMLElement {
   const el = document.createElement("div");
   el.className = "lt-toast" + (type !== "info" ? " lt-toast-" + type : "");
   const span = document.createElement("span");
   span.className = "lt-toast-msg";
-  span.textContent = message;
+  if (html) span.innerHTML = message; else span.textContent = message;
   el.appendChild(span);
   return el;
 }
@@ -110,7 +110,7 @@ function startDots(el: HTMLElement, message: string): ReturnType<typeof setInter
   }, DOT_MS);
 }
 
-export function notify(message: string, type: "success" | "error" | "info" = "info", duration = 3000): void {
+export function notify(message: string, type: "success" | "error" | "info" = "info", duration = 3000, html = false): void {
   const container = getContainer();
 
   if (duration === 0) {
@@ -122,7 +122,7 @@ export function notify(message: string, type: "success" | "error" | "info" = "in
       return;
     }
 
-    const el = makeToast(message, type);
+    const el = makeToast(message, type, html);
     container.prepend(el);
     const timer = startDots(el, message);
     persistent = { el, timer };
@@ -136,7 +136,7 @@ export function notify(message: string, type: "success" | "error" | "info" = "in
     persistent = null;
   }
 
-  const el = makeToast(message, type);
+  const el = makeToast(message, type, html);
   container.prepend(el);
   trim(container);
   setTimeout(() => dismiss(el), duration);
