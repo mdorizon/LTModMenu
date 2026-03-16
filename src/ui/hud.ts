@@ -16,6 +16,7 @@ import { initSceneCache } from "@features/teleport/teleport";
 import { initThemeSync } from "./theme";
 import { log } from "@core/logger";
 import { unlockPlayButton } from "./play-gate";
+import { isDisclaimerAccepted, showDisclaimer } from "./disclaimer";
 
 export function initHUD(): void {
   log("HUD", "initHUD() called");
@@ -199,8 +200,12 @@ export function initHUD(): void {
   log("HUD", "HUD INJECTED AND RENDERED SUCCESSFULLY!");
   log("HUD", "========================================");
 
-  // HUD is ready — let the player click Play
-  unlockPlayButton();
+  // HUD is ready — unlock Play (or show disclaimer first)
+  if (isDisclaimerAccepted()) {
+    unlockPlayButton();
+  } else {
+    showDisclaimer(() => unlockPlayButton());
+  }
 
   // ── Start auto-save ──
   startAutoSave();

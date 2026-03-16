@@ -37,8 +37,7 @@ export function renderActions(
     "</div>" +
     '<div class="lt-sep"></div>' +
     '<button class="lt-action" id="lt-session-toggle"></button>' +
-    "</div>" +
-    '<div class="lt-warn">These actions are detectable by the server</div>';
+    "</div>";
   bindNav(renderMainFn, pages);
 
   const showError = (msg: string) => notify(msg, "error");

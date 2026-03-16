@@ -22,15 +22,6 @@ export function mkItem(id: string, label: string, right?: string): string {
   );
 }
 
-export function mkItemTag(id: string, label: string, tag: string): string {
-  return (
-    '<button class="lt-item" id="' + id + '">' +
-    "<span>" + label + '<span class="lt-tag">' + tag + "</span></span>" +
-    '<span class="lt-arrow">&gt;&gt;&gt;</span>' +
-    "</button>"
-  );
-}
-
 export interface SelectOption { value: string; label: string; selected?: boolean }
 
 export function mkActionSelect(id: string, label: string, selectId: string, options: SelectOption[]): string {
