@@ -3,6 +3,7 @@ import { queueFishForSale, flushSellQueue, updateAutoSellHUD } from "./auto-sell
 import { saveData, loadData } from "@core/storage";
 import { log } from "@core/logger";
 import { setStatus, clearStatus } from "@ui/status-bar";
+import { mkCoin } from "@ui/components";
 
 let fishingLoopRunning = false;
 let skipMinigame = loadData<boolean>("skipMinigame", false);
@@ -89,16 +90,29 @@ export function updateHUD(): void {
   const el = (id: string) => document.getElementById(id);
   if (!el("lt-total")) return;
   el("lt-total")!.textContent = String(st.total);
-  el("lt-gold")!.textContent = (st.gold as number).toLocaleString();
+  el("lt-gold")!.innerHTML = mkCoin(st.gold as number);
   el("lt-common")!.textContent = String(st.common);
   el("lt-uncommon")!.textContent = String(st.uncommon);
   el("lt-rare")!.textContent = String(st.rare);
   el("lt-epic")!.textContent = String(st.epic);
   el("lt-legendary")!.textContent = String(st.legendary);
   el("lt-secret")!.textContent = String(st.secret);
-  el("lt-event")!.textContent = String(st.event);
-  if (st.last_fish && el("lt-last")) {
-    el("lt-last")!.textContent = st.last_fish;
+  const shinyEl = el("lt-shiny");
+  if (shinyEl) shinyEl.textContent = String(st.shiny);
+  const eventRow = el("lt-event-row");
+  if (eventRow) {
+    eventRow.style.display = (window.__fishingFrenzyActive || st.event > 0) ? "" : "none";
+  }
+  const eventEl = el("lt-event");
+  if (eventEl) eventEl.textContent = String(st.event);
+  const lastEl = el("lt-last");
+  if (lastEl) {
+    if (st.last_fish) {
+      lastEl.textContent = st.last_fish;
+      lastEl.style.display = "";
+    } else {
+      lastEl.style.display = "none";
+    }
   }
 }
 
@@ -368,6 +382,7 @@ export async function fishingLoop(): Promise<void> {
       const st = window.__fishStats;
       if (st[statKey] !== undefined) (st[statKey] as number)++;
       else st.unknown++;
+      if (result.isShiny) st.shiny++;
       st.total++;
       (st.gold as number) += goldEarned;
 

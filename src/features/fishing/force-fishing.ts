@@ -122,7 +122,7 @@ export function renderForceFishing(): string {
   if (getCurrentMap() !== "fishing") return "";
   const cls = forceFishingActive ? "lt-action lt-danger" : "lt-action lt-primary";
   const label = forceFishingActive ? "Stop Fishing" : "Force Fishing";
-  return '<div class="lt-sep"></div><button class="' + cls + '" id="lt-fish-here">' + label + "</button>";
+  return '<button class="' + cls + '" id="lt-fish-here">' + label + "</button>";
 }
 
 export function bindForceFishing(): void {
