@@ -45,7 +45,7 @@ export function initGlobalState(): void {
   window.__playerPos = null;
   window.__gameApp = null;
   window.__localPlayerId = null;
-  window.__botPaused = true;
+  window.__botPaused = loadData<boolean>("botPaused", true);
   window.__sceneCache = new Map();
   window.__currentLobby = null;
   window.__wsAuthToken = null;
@@ -60,7 +60,7 @@ export function initGlobalState(): void {
   window.__waypoints = loadData<Waypoint[]>("waypoints", []);
   const defaultStats: FishStats = {
     common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0,
-    secret: 0, event: 0, shiny: 0, unknown: 0, total: 0, gold: 0, last_fish: "",
+    secret: 0, event: 0, shiny: 0, unknown: 0, total: 0, gold: 0, last_fish: null,
   };
   window.__fishStats = { ...defaultStats, ...loadData<FishStats>("fishStats", defaultStats) };
 

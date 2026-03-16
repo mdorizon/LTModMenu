@@ -17,6 +17,7 @@ import { initThemeSync } from "./theme";
 import { log } from "@core/logger";
 import { unlockPlayButton } from "./play-gate";
 import { isDisclaimerAccepted, showDisclaimer } from "./disclaimer";
+import { tryAutoResumeFishing } from "@features/fishing/fishing-loop";
 
 export function initHUD(): void {
   log("HUD", "initHUD() called");
@@ -106,6 +107,7 @@ export function initHUD(): void {
     if (window.__gameApp) {
       log("HUD", "gameApp ready! (after " + retryCount + " checks)");
       setTimeout(() => initSceneCache(), 5000);
+      tryAutoResumeFishing();
       clearInterval(retryInterval);
       return;
     }

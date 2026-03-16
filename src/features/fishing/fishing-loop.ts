@@ -5,6 +5,12 @@ import { log } from "@core/logger";
 import { setStatus, clearStatus } from "@ui/status-bar";
 import { mkCoin } from "@ui/components";
 
+const RARITY_COLORS: Record<string, string> = {
+  common: "#8a8a9a", uncommon: "#5ad85a", rare: "#5a9af0",
+  epic: "#b06ad8", legendary: "#f0a030", secret: "#f05050",
+  halloween: "#f08030", christmas: "#60c0f0", unknown: "#6a6a9a",
+};
+
 let fishingLoopRunning = false;
 let skipMinigame = loadData<boolean>("skipMinigame", false);
 
@@ -25,6 +31,13 @@ function getFishingManager(): any {
 
 export function isFishingLoopRunning(): boolean {
   return fishingLoopRunning;
+}
+
+export function tryAutoResumeFishing(): void {
+  if (!window.__botPaused && !fishingLoopRunning) {
+    log("BOT", "Auto-resuming fishing loop from saved state");
+    fishingLoop();
+  }
 }
 
 export function stopFishingLoop(): void {
@@ -107,11 +120,22 @@ export function updateHUD(): void {
   if (eventEl) eventEl.textContent = String(st.event);
   const lastEl = el("lt-last");
   if (lastEl) {
-    if (st.last_fish) {
-      lastEl.textContent = st.last_fish;
+    const lf = st.last_fish;
+    if (lf && typeof lf === "object") {
+      const color = RARITY_COLORS[lf.rarity] || RARITY_COLORS.unknown;
+      const shiny = lf.isShiny ? ' <span style="color:#f0e060;">SHINY</span>' : "";
+      lastEl.style.color = color;
+      lastEl.innerHTML =
+        '<span>' + lf.name + shiny + '</span>' +
+        '<span>' + lf.weight + 'kg</span>' +
+        '<span>' + mkCoin(lf.gold) + '</span>';
       lastEl.style.display = "";
+      const sep = el("lt-last-sep");
+      if (sep) sep.style.display = "";
     } else {
       lastEl.style.display = "none";
+      const sep = el("lt-last-sep");
+      if (sep) sep.style.display = "none";
     }
   }
 }
@@ -386,9 +410,8 @@ export async function fishingLoop(): Promise<void> {
       st.total++;
       (st.gold as number) += goldEarned;
 
+      st.last_fish = { name: result.name, rarity, weight: result.weight, gold: goldEarned, isShiny: result.isShiny };
       const shinyTag = result.isShiny ? " SHINY!" : "";
-      const goldStr = goldEarned ? " +" + goldEarned + "g" : "";
-      st.last_fish = result.name + " (" + rarity + ") " + result.weight + "kg" + shinyTag + goldStr;
 
       updateHUD();
       saveData("fishStats", window.__fishStats);
