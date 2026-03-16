@@ -54,6 +54,7 @@ Chaque feature a `ui/*-view.ts` (fonction `render*(hud, renderMainFn, pages)`) e
 | Domaine | Fichier |
 |---------|---------|
 | Peche | `src/features/fishing/docs/fishing-internals.md` |
+| Vente/inventaire/gold | `src/features/fishing/docs/fish-economy-internals.md` |
 | Collision/noclip/speed | `src/features/actions/docs/player-physics-internals.md` |
 | Camera/hitboxes/PIXI | `src/features/actions/docs/camera-debug-internals.md` |
 | Social/burrows/profils | `src/features/players/docs/social-internals.md` |
