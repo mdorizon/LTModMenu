@@ -395,6 +395,19 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
         app.hasInitiallyJoinedRoom = false;
         log("WS", "Lobby switch: reset App flags for full re-init");
       }
+
+      // Sync game's React lobby store so the HUD shows the correct lobby
+      const lobbyStore = window.__stores?.useLobbyStore;
+      const newLobby = window.__currentLobby;
+      if (lobbyStore && newLobby) {
+        const state = lobbyStore.getState();
+        const match = (state.lobbies as { id: string; url: string }[])
+          ?.find((l: { id: string }) => l.id === newLobby);
+        if (match) {
+          state.setCurrentLobby(match);
+          log("WS", "Lobby store synced to " + newLobby);
+        }
+      }
     });
   }
 
