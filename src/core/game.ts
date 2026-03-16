@@ -51,3 +51,55 @@ export function getCurrentMap(): string {
   }
   return "unknown";
 }
+
+export function getCurrentLobby(): string {
+  return window.__currentLobby || "unknown";
+}
+
+const LOBBY_EMOJIS: Record<string, string> = {
+  ambient: "\uD83C\uDF43",
+  blossom: "\uD83C\uDF38",
+  cozy: "\u2615",
+  daydream: "\uD83D\uDCAD",
+};
+
+export function lobbyLabel(id: string): string {
+  const emoji = LOBBY_EMOJIS[id];
+  const name = id.charAt(0).toUpperCase() + id.slice(1);
+  return emoji ? emoji + " " + name : name;
+}
+
+export function switchLobby(targetLobby: string): boolean {
+  if (window.__lobbySwitching) {
+    log("ACTION", "switchLobby BLOCKED: switch already in progress");
+    return false;
+  }
+  const ws = window.__gameWS;
+  if (!ws || ws.readyState !== 1) {
+    log("ACTION", "switchLobby FAILED: WS not ready");
+    return false;
+  }
+  if (window.__currentLobby === targetLobby) {
+    log("ACTION", "switchLobby: already on " + targetLobby);
+    return true;
+  }
+
+  log("ACTION", "Switching lobby: " + (window.__currentLobby || "?") + " → " + targetLobby);
+  window.__lobbySwitching = true;
+  window.__lobbyOverride = targetLobby;
+
+  // Send Socket.IO disconnect then close transport
+  // Socket.IO auto-reconnect creates a new WebSocket, our hook redirects the URL
+  ws.send("41");
+  ws.close();
+
+  // Safety net: auto-unlock after 10s in case the new WS never opens
+  setTimeout(() => {
+    if (window.__lobbySwitching) {
+      window.__lobbySwitching = false;
+      log("ACTION", "switchLobby lock auto-released (timeout)");
+    }
+  }, 10000);
+
+  return true;
+}

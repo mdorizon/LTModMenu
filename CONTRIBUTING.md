@@ -1,38 +1,47 @@
 # Contributing to LTModMenu
 
-Thanks for your interest! Here's everything you need to contribute or run the project locally.
+Thanks for your interest! Here's how to get started.
 
 ---
 
 ## Prerequisites
 
-- [Bun](https://bun.sh/) installed
+- [Bun](https://bun.sh/) (not npm)
 - [Tampermonkey](https://www.tampermonkey.net/) on your browser
+- A [lofi.town](https://lofi.town/) account
 
 ---
 
-## Development Setup
+## Setup
 
 ```bash
-# Clone the repo
 git clone https://github.com/mdorizon/LTModMenu.git
 cd LTModMenu
-
-# Install dependencies
 bun install
 ```
 
-### Build commands
+| Command | Description |
+| ------- | ----------- |
+| `bun run build` | Production build → `dist/ltmodmenu.user.js` |
+| `bun run dev` | Watch mode + log server on port 8642 |
 
-```bash
-bun run build   # Compile to dist/ltmodmenu.user.js
-bun run watch   # Auto-recompile on every change
-bun run clean   # Delete the dist/ folder
+Then create a new script in Tampermonkey with the following content, replacing the path with your local clone:
+
+```js
+// ==UserScript==
+// @name         LTModMenu - DEV
+// @namespace    ltmodmenu
+// @version      dev
+// @match        https://app.lofi.town/*
+// @require      file:///path/to/LTModMenu/dist/ltmodmenu.user.js
+// @grant        none
+// @run-at       document-start
+// ==/UserScript==
 ```
 
-Once compiled, install `dist/ltmodmenu.user.js` in Tampermonkey and go to [lofi.town](https://lofi.town/).
+> **Important:** For `file:///` access to work, enable "Allow access to file URLs" in Tampermonkey's extension settings (browser extensions page → Tampermonkey → Details).
 
-> **Tip:** In `watch` mode, just reload the page after each change — Tampermonkey will automatically pick up the new version if the script is loaded from a local file.
+Now just reload [lofi.town](https://lofi.town/) after each build — Tampermonkey reads the file fresh every time.
 
 ---
 
@@ -40,68 +49,41 @@ Once compiled, install `dist/ltmodmenu.user.js` in Tampermonkey and go to [lofi.
 
 ```
 src/
-├── index.ts                 # Entry point
-├── types/
-│   └── global.d.ts          # Global types (Window, FishStats, GameApp...)
-├── data/
-│   └── fish-database.ts     # 54-fish database
-├── storage/
-│   └── storage.ts           # localStorage helpers + auto-save
-├── game/
-│   ├── fish-utils.ts        # calculateGold, getRarity
-│   ├── challenge-solver.ts  # FNV-1a challenge solver
-│   ├── webpack-spy.ts       # Hook webpackChunk_N_E
-│   ├── websocket-hook.ts    # Native WebSocket hook
-│   └── player-actions.ts    # TP, sit, fish, wsSend, gameClick
-├── bot/
-│   └── fishing-loop.ts      # Auto fishing loop
-└── ui/
-    ├── styles.ts            # Menu CSS
-    ├── components.ts        # mkHeader, mkItem, bindNav
-    ├── hud.ts               # HUD init, drag, timer, retry
-    └── pages/
-        ├── main-page.ts     # Main page
-        ├── poi-page.ts      # Points of interest
-        ├── tp-page.ts       # Waypoints
-        ├── actions-page.ts  # Player actions
-        └── fish-page.ts     # Auto fishing + stats
+  index.ts              # Entry point
+  core/                 # Game hooks, storage, logger, module resolution
+  features/             # One folder per feature (fishing, teleport, players...)
+  ui/                   # HUD, styles, components, icons, theme, modals
 ```
+
+Each feature folder contains its logic, UI view (`ui/*-view.ts`), and static data (`data/`).
+
+### Import Aliases
+
+| Alias | Path |
+| ----- | ---- |
+| `@core/*` | `src/core/*` |
+| `@features/*` | `src/features/*` |
+| `@ui/*` | `src/ui/*` |
+
+Use aliases for cross-module imports, relative paths within the same feature.
 
 ---
 
-## Useful Global Variables (console)
+## Conventions
 
-Handy for debugging directly in the browser console:
-
-| Variable | Description |
-| -------- | ----------- |
-| `window.__gameWS` | WebSocket connection |
-| `window.__gameApp` | Game App instance |
-| `window.__playerPos` | Last known position |
-| `window.__fishStats` | Fishing statistics |
-| `window.__waypoints` | Saved waypoints |
-| `window.__botPaused` | Bot pause state |
-| `window.__solveFishingChallenge(c)` | Manually solve a challenge |
-| `window.__forceEndMinigame()` | Force end the minigame |
-
----
-
-## Publishing a Release
-
-The project uses GitHub Actions to build and publish automatically.
-
-```bash
-git tag v2.3.0
-git push origin v2.3.0
-```
-
-The workflow compiles the project and attaches `ltmodmenu.user.js` to the GitHub release assets.
+- TypeScript strict, ES2017 target
+- No hardcoded webpack module IDs (game modules are found by export signature)
+- Icons go in `src/ui/icons.ts`, not inline
+- Modals use `showModal()` from `src/ui/modal.ts` when possible
+- Gitmoji commits: `✨` feature, `🐛` fix, `♻️` refactor, `🎨` style, `📝` docs
 
 ---
 
 ## Opening a Pull Request
 
 1. Fork the repo
-2. Create a branch from `main`: `git checkout -b feat/my-feature`
-3. Commit your changes with clear messages
+2. Branch from `main`: `git checkout -b feat/my-feature`
+3. Test in-game on [lofi.town](https://lofi.town/)
 4. Open a PR describing what you changed and why
+
+Versioning and releases are handled by maintainers.

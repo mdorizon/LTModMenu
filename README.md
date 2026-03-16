@@ -1,104 +1,154 @@
-# LTModMenu — Lofi Town Mod Menu
+<div align="center">
 
-![LTModMenu Preview](https://raw.githubusercontent.com/mdorizon/LTModMenu/refs/heads/dev/LTModMenuPreview.webp)
+# LTModMenu
 
-Tampermonkey userscript mod menu for [Lofi Town](https://lofi.town/).  
-Includes an automatic fishing bot, teleportation, waypoints, and detailed statistics.
+**Mod menu for [Lofi Town](https://lofi.town/)**
 
-> ⚠️ **Use at your own risk.** This mod menu may violate [Lofi Town's terms of service](https://lofi.town/) and could result in your account being banned.
+[![Release][release-badge]][release-url]
+[![Stars][stars-badge]][stars-url]
+[![Tampermonkey][tm-badge]][install-url]
+[![TypeScript][ts-badge]](#)
 
----
+[Install](#installation) · [Features](#features) · [Report Bug][issues-url]
+
+</div>
+
+![LTModMenu Preview](LTModMenuPreview.webp)
+
+> **Use at your own risk.** This mod menu may violate Lofi Town's terms of service and could result in your account being banned.
+
+<details>
+<summary>Table of Contents</summary>
+
+- [Installation](#installation)
+- [Features](#features)
+- [Keyboard Shortcuts](#keyboard-shortcuts)
+- [Built With](#built-with)
+- [Contributors](#contributors)
+
+</details>
 
 ## Installation
 
-1. Install [Tampermonkey](https://www.tampermonkey.net/) on your browser
-2. Create a new userscript and paste the contents of [`ltmodmenu.user.js`](https://github.com/mdorizon/LTModMenu/releases/latest)
-3. Go to [lofi.town](https://lofi.town/) — the menu appears automatically
+<a href="https://mdorizon.github.io/LTModMenu/ltmodmenu.user.js">
+  <img src="https://img.shields.io/badge/Install_LTModMenu-00485b?style=for-the-badge&logo=tampermonkey&logoColor=white" alt="Install with Tampermonkey" height="40">
+</a>
 
----
+<br>
+
+1. Install [Tampermonkey](https://www.tampermonkey.net/) on your browser (Chrome, Firefox, Edge, Safari, Opera)
+2. Click the button above — Tampermonkey will prompt you automatically
+3. Go to [lofi.town](https://lofi.town/) — the menu appears on screen
+
+Updates are delivered automatically via Tampermonkey.
 
 ## Features
 
-### 🎣 Auto Fishing Bot
+### 🎣 Fishing
 
-Fully automated fishing bot:
+<table>
+<tr>
+<td width="50%">
 
-- Automatic detection and click of CAST and REEL buttons
-- Automatic challenge resolution (FNV-1a algorithm)
-- Result collection and popup closing
-- Fishing fail blocking (prevents the server from registering fails)
-- Continuous loop with humanized delays (100–200ms random)
-- Smart timeouts (45s cast, 10s result)
-- START/STOP button with session timer
+**Auto Fishing Bot**
 
-### 📊 Fishing Statistics
+Fully automated 5-phase state machine: cast, reel, challenge resolution (FNV-1a solver), result collection, and loop. Humanized delays, smart timeouts, fail blocking, force fishing mode.
 
-Detailed tracking with auto-save every 30s via localStorage:
+</td>
+<td width="50%">
 
-- Total fish caught
-- Total gold earned (calculated from weight and rarity)
-- Counters per rarity: Common, Uncommon, Rare, Epic, Legendary, Secret, Event
-- Last fish caught (name, weight, rarity, gold, shiny)
-- Shiny fish detection (x50 gold)
-- Stats reset button
+**Statistics & Database**
 
-### 🗄️ Fish Database
+Real-time tracking with auto-save: total caught, gold earned, rarity breakdown, shiny detection (x50 gold). 54 fish species across 7 rarities — Common, Uncommon, Rare, Epic, Legendary, Secret, Event.
 
-54 species with min/max weight and base gold:
-
-| Rarity    | Count | Examples |
-| --------- | ----- | -------- |
-| Common    | 12    | Bass, Cod, Shrimp, Lobster... |
-| Uncommon  | 11    | Puffer Fish, Tuna, Seahorse... |
-| Rare      | 7     | Goldfish, Koi Carp, Blobfish... |
-| Epic      | 11    | Blue Lobster, Tiger Shark, Octopus... |
-| Legendary | 10    | Golden Goldfish, Cthulhu, Megalodon... |
-| Secret    | 7     | Goblin Shark, Ghost Shark, Barreleye Fish... |
-| Event     | 12    | Halloween (Vampire Squid, Nessie...) + Christmas (Narwhal, Walrus...) |
+</td>
+</tr>
+</table>
 
 ### 🗺️ Teleportation
 
-- **Fixed points of interest:** Fishing Spot (860, 380), Merchant (793, 198)
-- **Custom waypoints:** save your current position with a name, teleport in one click, delete individually
-- Server sync via WebSocket (position + direction)
+<table>
+<tr>
+<td width="50%">
 
-### ⚙️ Player Actions
+**POIs & Waypoints**
 
-- **Sit** — forces the sitting animation
-- **Force fish** — triggers the fishing animation at the current position
-- **Stand** — returns to standing position (no cooldown)
+Fixed points of interest and custom waypoints — save your current position, teleport in one click, delete individually.
 
----
+</td>
+<td width="50%">
 
-## Interface
+**Cross-Map Navigation**
 
-Draggable menu fixed on the left side of the screen with 4 sections:
+Lobby switching with transition overlay, burrow visits with privacy check, inter-map player tracking.
 
-1. **Saved Locations** — fixed POIs + custom waypoints
-2. **Teleport Options** — waypoint management (add/delete)
-3. **Player Actions** — manual actions (sit, fish, stand)
-4. **Auto Fishing** — bot controls, timer, live statistics
+</td>
+</tr>
+</table>
 
-Dark Lofi Town theme (navy + lavender), custom HabitSmall font.
+### 👥 Players
 
----
+<table>
+<tr>
+<td width="50%">
+
+**Player Browser**
+
+Live player list with search by display name or username. Full grid browser with auto-refresh. Friends tracking with real-time status.
+
+</td>
+<td width="50%">
+
+**Teleport to Players**
+
+Jump to any player on the current map. Cross-lobby navigation to friends on other maps. Burrow visits for accessible players.
+
+</td>
+</tr>
+</table>
+
+### ⚡ Actions
+
+| Action          | Description                                                          |
+| --------------- | -------------------------------------------------------------------- |
+| **Sit / Stand** | Toggle sitting animation                                             |
+| **Noclip**      | Bypass all collision detection                                       |
+| **Speed**       | Multiplier from 1x to 10x, persisted across sessions and map changes |
 
 ## Keyboard Shortcuts
 
-| Key | Action |
-| --- | ------ |
-| `1` | Open / close the mod menu |
-| `2` | Previous item |
-| `3` | Next item |
-| `4` | Select / activate |
-| `5` | Back |
+| Key          | Action            |
+| ------------ | ----------------- |
+| <kbd>1</kbd> | Toggle menu       |
+| <kbd>2</kbd> | Previous item     |
+| <kbd>3</kbd> | Next item         |
+| <kbd>4</kbd> | Select / activate |
+| <kbd>5</kbd> | Back              |
 
-> Shortcuts are disabled when a text input or textarea is focused.
+> Disabled when a text input is focused.
 
----
+## Built With
+
+[![TypeScript][ts-stack-badge]](#)
+[![Webpack][webpack-badge]](#)
+[![Tampermonkey][tm-stack-badge]](#)
 
 ## Contributors
 
 <a href="https://github.com/mdorizon/LTModMenu/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=mdorizon/LTModMenu" />
 </a>
+
+<!-- Reference-style links -->
+
+[release-badge]: https://img.shields.io/github/v/release/mdorizon/LTModMenu?style=flat-square&color=blue
+[release-url]: https://github.com/mdorizon/LTModMenu/releases/latest
+[stars-badge]: https://img.shields.io/github/stars/mdorizon/LTModMenu?style=flat-square
+[stars-url]: https://github.com/mdorizon/LTModMenu/stargazers
+[tm-badge]: https://img.shields.io/badge/Tampermonkey-userscript-00485b?style=flat-square&logo=tampermonkey&logoColor=white
+[ts-badge]: https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white
+[install-url]: https://mdorizon.github.io/LTModMenu/ltmodmenu.user.js
+[issues-url]: https://github.com/mdorizon/LTModMenu/issues
+[ts-stack-badge]: https://img.shields.io/badge/TypeScript-3178c6?style=for-the-badge&logo=typescript&logoColor=white
+[webpack-badge]: https://img.shields.io/badge/Webpack-8DD6F9?style=for-the-badge&logo=webpack&logoColor=black
+[tm-stack-badge]: https://img.shields.io/badge/Tampermonkey-00485b?style=for-the-badge&logo=tampermonkey&logoColor=white

@@ -1,3 +1,5 @@
+import { syncTheme } from "./theme";
+
 export interface ModalButton {
   label: string;
   style?: "danger" | "warning" | "success" | "default";
@@ -15,6 +17,7 @@ export interface ModalOptions {
   style?: "danger" | "warning" | "default";
   checkbox?: ModalCheckbox;
   buttons: ModalButton[];
+  dismissible?: boolean;
 }
 
 const borderColors: Record<string, string> = {
@@ -49,7 +52,7 @@ export function showModal(opts: ModalOptions): void {
     .join("");
 
   const checkboxHtml = opts.checkbox
-    ? '<label style="display:flex;align-items:center;gap:10px;margin:12px 0 4px;font-size:14px;color:var(--lt-text-muted,#8a8aaa);cursor:pointer;">' +
+    ? '<label style="display:flex;align-items:center;gap:10px;margin:10px 0 4px;font-size:12px;color:var(--lt-text-muted,#8a8aaa);cursor:pointer;">' +
       '<input type="checkbox" id="lt-modal-checkbox"' + (opts.checkbox.defaultChecked ? " checked" : "") + ' style="width:16px;height:16px;margin:0;cursor:pointer;accent-color:#d4a44a;flex-shrink:0;vertical-align:middle;">' +
       '<span style="vertical-align:middle;">' + opts.checkbox.label + "</span>" +
       "</label>"
@@ -63,14 +66,17 @@ export function showModal(opts: ModalOptions): void {
     '<div id="lt-modal-actions">' + buttonsHtml + "</div></div>";
 
   document.body.appendChild(overlay);
+  syncTheme(overlay);
 
   const close = () => {
     if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
   };
 
-  overlay.onclick = (e) => {
-    if (e.target === overlay) close();
-  };
+  if (opts.dismissible !== false) {
+    overlay.onclick = (e) => {
+      if (e.target === overlay) close();
+    };
+  }
 
   overlay.querySelectorAll<HTMLButtonElement>(".lt-modal-btn").forEach((btn) => {
     const idx = parseInt(btn.dataset.idx || "0", 10);

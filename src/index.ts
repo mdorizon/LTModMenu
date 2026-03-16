@@ -9,6 +9,10 @@ import "@core/console-filter";
 
 import { log } from "@core/logger";
 
+// 0. Lock Play button until mod is ready (must be before game renders)
+import { lockPlayButton } from "@ui/play-gate";
+lockPlayButton();
+
 log("INIT", ">>> Script executing in PAGE context <<<");
 log("INIT", "document.readyState: " + document.readyState);
 log("INIT", "window.WebSocket exists: " + typeof window.WebSocket);
@@ -31,6 +35,11 @@ initSpeedWatcher();
 
 // 5. Hook webpack chunks (must be before game loads)
 import "@core/webpack-spy";
+
+// 5b. Sound hook (patches Howl.prototype.play, retries until ready)
+import { initSoundHook, initMusicPauseHook } from "@features/sounds/sounds";
+initMusicPauseHook();
+initSoundHook();
 
 // 6. Hook WebSocket constructor (must be before game connects)
 import "@core/websocket-hook";

@@ -1,3 +1,11 @@
+export interface LastFishInfo {
+  name: string;
+  rarity: string;
+  weight: number;
+  gold: number;
+  isShiny: boolean;
+}
+
 export interface FishStats {
   common: number;
   uncommon: number;
@@ -6,11 +14,12 @@ export interface FishStats {
   legendary: number;
   secret: number;
   event: number;
+  shiny: number;
   unknown: number;
   total: number;
   gold: number;
-  last_fish: string;
-  [key: string]: number | string;
+  last_fish: LastFishInfo | null;
+  [key: string]: number | string | LastFishInfo | null;
 }
 
 export interface FishBiteData {
@@ -19,6 +28,7 @@ export interface FishBiteData {
 }
 
 export interface FishResultData {
+  id?: string;
   name?: string;
   weight?: number;
   isShiny?: boolean;

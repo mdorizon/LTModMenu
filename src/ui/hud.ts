@@ -6,10 +6,18 @@ import { renderWaypoints } from "@features/teleport/ui/waypoints-view";
 import { renderActions } from "@features/actions/ui/actions-view";
 import { renderFishing } from "@features/fishing/ui/fishing-view";
 import { renderPlayers } from "@features/players/ui/players-view";
+import { renderFocus } from "@features/focus/ui/focus-view";
+import { renderMissions } from "@features/missions/ui/missions-view";
+import { restoreMissionPanelHide } from "@features/missions/mission-panel-hide";
+import { tryAutoRejoin } from "@features/focus/focus-bot";
+import { startSessionSaver, trySessionRestore } from "@features/session/session-restore";
 import { startAutoSave } from "@core/storage";
 import { initSceneCache } from "@features/teleport/teleport";
 import { initThemeSync } from "./theme";
 import { log } from "@core/logger";
+import { unlockPlayButton } from "./play-gate";
+import { isDisclaimerAccepted, showDisclaimer } from "./disclaimer";
+import { tryAutoResumeFishing } from "@features/fishing/fishing-loop";
 
 export function initHUD(): void {
   log("HUD", "initHUD() called");
@@ -47,6 +55,8 @@ export function initHUD(): void {
     actions: () => renderActions(hud, renderMainFn, pages),
     fish: () => renderFishing(hud, renderMainFn, pages),
     players: () => renderPlayers(hud, renderMainFn, pages),
+    focus: () => renderFocus(hud, renderMainFn, pages),
+    missions: () => renderMissions(hud, renderMainFn, pages),
   };
 
   // ── Drag ──
@@ -55,11 +65,8 @@ export function initHUD(): void {
   let dy = 0;
 
   hud.addEventListener("mousedown", (e) => {
-    if (
-      (e.target as HTMLElement).id === "lt-header" ||
-      ((e.target as HTMLElement).parentElement &&
-        (e.target as HTMLElement).parentElement!.id === "lt-header")
-    ) {
+    const target = e.target as HTMLElement;
+    if (target.closest("#lt-header") && !target.closest("#lt-back")) {
       dragging = true;
       const rect = hud.getBoundingClientRect();
       hud.style.top = rect.top + "px";
@@ -100,37 +107,16 @@ export function initHUD(): void {
     if (window.__gameApp) {
       log("HUD", "gameApp ready! (after " + retryCount + " checks)");
       setTimeout(() => initSceneCache(), 5000);
+      tryAutoResumeFishing();
       clearInterval(retryInterval);
       return;
     }
 
-    // Direct polling fallback: try to grab App._instance via wpRequire
-    if (window.__wpRequire) {
-      try {
-        const appModule = window.__wpRequire(20493);
-        if (appModule?.App?._instance?.localPlayer !== undefined) {
-          window.__gameApp = appModule.App._instance;
-          log("HUD", "gameApp captured via direct polling (retry #" + retryCount + ")");
-          setTimeout(() => initSceneCache(), 5000);
-          clearInterval(retryInterval);
-          return;
-        }
-      } catch (_e) {
-        // Module not ready yet
-      }
-    }
+    // gameApp is captured by webpack-spy via the _instance setter.
+    // No additional scanning needed here.
 
-    if (window.__ltSpyRetry) {
-      const ok = window.__ltSpyRetry();
-      log("HUD", "Spy retry #" + retryCount + ": " + (ok ? "SUCCESS" : "waiting..."));
-      if (ok) {
-        setTimeout(() => initSceneCache(), 5000);
-        clearInterval(retryInterval);
-      }
-    } else {
-      if (retryCount % 5 === 0) {
-        log("HUD", "Waiting for spy retry function... (check #" + retryCount + ")");
-      }
+    if (retryCount % 5 === 0) {
+      log("HUD", "Waiting for gameApp... (check #" + retryCount + ")");
     }
   }, 1000);
 
@@ -216,8 +202,22 @@ export function initHUD(): void {
   log("HUD", "HUD INJECTED AND RENDERED SUCCESSFULLY!");
   log("HUD", "========================================");
 
+  // HUD is ready — unlock Play (or show disclaimer first)
+  if (isDisclaimerAccepted()) {
+    unlockPlayButton();
+  } else {
+    showDisclaimer(() => unlockPlayButton());
+  }
+
   // ── Start auto-save ──
   startAutoSave();
+  startSessionSaver();
+
+  // ── Restore persisted UI state ──
+  restoreMissionPanelHide();
+
+  // ── Restore previous session (lobby, map, position) then auto-rejoin focus ──
+  trySessionRestore().then(() => tryAutoRejoin());
 }
 
 export function tryInit(): void {

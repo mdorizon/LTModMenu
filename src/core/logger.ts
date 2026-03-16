@@ -1,7 +1,6 @@
 const MAX_LOGS = 5000;
-const LOG_SERVER = "http://localhost:8642/logs";
-const WS_ALL_SERVER = "http://localhost:8642/ws-all";
-const FLUSH_INTERVAL = 2000; // flush every 2s
+const WS_URL = "ws://localhost:8642";
+const FLUSH_INTERVAL = 2000;
 
 const logs: string[] = [];
 const pending: string[] = [];
@@ -33,13 +32,12 @@ export function log(category: string, message: string, data?: unknown): void {
     logs.splice(0, logs.length - MAX_LOGS);
   }
 
-  // In dev mode, queue for sending to log server
   if (__DEV__) {
     pending.push(entry);
+    if (wsAllEnabled) pendingWsAll.push(entry);
   }
 }
 
-// Log all WS traffic (including filtered events) to separate file
 export function logWsAll(message: string): void {
   if (!__DEV__ || !wsAllEnabled) return;
   const entry = `[${timestamp()}] ${message}`;
@@ -60,30 +58,51 @@ export function setWsAllEnabled(enabled: boolean): void {
   log("WS", "All WS logging " + (enabled ? "ENABLED" : "DISABLED"));
 }
 
-// Batch-send logs to the local dev server
+// ── WebSocket transport (single connection, no CORS/Private Network Access issues) ──
+
+let ws: WebSocket | null = null;
+let wsReady = false;
+
+function connectWs(): void {
+  try {
+    ws = new WebSocket(WS_URL);
+    ws.onopen = () => { wsReady = true; flushLogs(); };
+    ws.onclose = () => {
+      wsReady = false;
+      ws = null;
+      setTimeout(connectWs, 5000);
+    };
+    ws.onerror = () => {
+      wsReady = false;
+      if (ws) { ws.close(); ws = null; }
+      setTimeout(connectWs, 5000);
+    };
+  } catch (_) {
+    setTimeout(connectWs, 5000);
+  }
+}
+
 function flushLogs(): void {
+  if (!wsReady || !ws) return;
+
   if (pending.length > 0) {
     const batch = pending.splice(0);
-    fetch(LOG_SERVER, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(batch),
-    }).catch(() => {});
+    ws.send(JSON.stringify({ channel: "logs", entries: batch }));
   }
 
   if (pendingWsAll.length > 0) {
     const batch = pendingWsAll.splice(0);
-    fetch(WS_ALL_SERVER, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(batch),
-    }).catch(() => {});
+    ws.send(JSON.stringify({ channel: "ws-raw", entries: batch }));
   }
 }
 
 if (__DEV__) {
+  connectWs();
   setInterval(flushLogs, FLUSH_INTERVAL);
-  window.addEventListener("beforeunload", flushLogs);
+  window.addEventListener("beforeunload", () => {
+    flushLogs();
+    if (ws) ws.close();
+  });
 }
 
 export function getLogs(): string[] {
@@ -96,7 +115,7 @@ export function downloadLogs(): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `ltmodmenu-logs-${new Date().toISOString().replace(/[:.]/g, "-")}.log`;
+  a.download = `client-${new Date().toISOString().replace(/[:.]/g, "-")}.log`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

@@ -1,7 +1,6 @@
 import { wsSend, getCurrentMap } from "@core/game";
 import { log } from "@core/logger";
-import { saveData, loadData } from "@core/storage";
-import { showModal } from "@ui/modal";
+import { setStatus, clearStatus } from "@ui/status-bar";
 import { FISHING_SEAT_IDS } from "./data/fishing-seats";
 
 function pickFishingSeat(): string {
@@ -55,6 +54,7 @@ export function cleanupFishingRod(): void {
     fishingCleanupInterval = null;
   }
   forceFishingActive = false;
+  clearStatus("force-fishing");
   syncButton();
 }
 
@@ -74,6 +74,7 @@ function activate(): void {
   if (!app?.localPlayer) return;
 
   forceFishingActive = true;
+  setStatus("force-fishing", { label: "FORCE FISH", color: "#e070b0", bg: "#3a1a2a" });
   syncButton();
 
   const lp = app.localPlayer;
@@ -119,7 +120,7 @@ export function renderForceFishing(): string {
   if (getCurrentMap() !== "fishing") return "";
   const cls = forceFishingActive ? "lt-action lt-danger" : "lt-action lt-primary";
   const label = forceFishingActive ? "Stop Fishing" : "Force Fishing";
-  return '<div class="lt-sep"></div><button class="' + cls + '" id="lt-fish-here">' + label + "</button>";
+  return '<button class="' + cls + '" id="lt-fish-here">' + label + "</button>";
 }
 
 export function bindForceFishing(): void {
@@ -129,32 +130,8 @@ export function bindForceFishing(): void {
   btn.onclick = () => {
     if (forceFishingActive) {
       deactivate();
-      return;
-    }
-
-    if (loadData<boolean>("skipForceFishingWarning", false)) {
+    } else {
       activate();
-      return;
     }
-
-    showModal({
-      title: "Force Fishing",
-      message:
-        "Cette fonctionnalité force l'assise et le lancement de canne depuis n'importe où sur la map. " +
-        "Le serveur peut détecter un comportement anormal. Utilise à tes risques.",
-      style: "warning",
-      checkbox: { label: "Ne plus m'avertir" },
-      buttons: [
-        { label: "Annuler", style: "default", onClick: () => {} },
-        {
-          label: "Activer",
-          style: "warning",
-          onClick: (checked) => {
-            if (checked) saveData("skipForceFishingWarning", true);
-            activate();
-          },
-        },
-      ],
-    });
   };
 }

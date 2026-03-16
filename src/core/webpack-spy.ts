@@ -1,17 +1,20 @@
-// Side-effect module: hooks webpackChunk_N_E.push to capture gameApp
+// Side-effect module: hooks webpackChunk_N_E.push to capture gameApp,
+// Zustand stores, GameGlobals signal bus, and Socket.IO client wrapper.
+// Uses signature-based detection (module-resolver) instead of hardcoded
+// module IDs — resilient to game rebuilds.
 
 import { log } from "./logger";
+import { captureAll, findAppClass, extractBurrowTemplatesGeneric } from "./module-resolver";
 
 function inspectLocalPlayerForId(gameApp: any): void {
   try {
     const lp = gameApp.localPlayer;
     if (!lp) return;
 
-    // Look for ID-like properties on localPlayer
     const idKeys = ["id", "playerId", "userId", "uid", "sid", "sessionId", "name", "username"];
     for (const key of idKeys) {
       if (lp[key] !== undefined) {
-        log("PLAYER", `Found localPlayer.${key}: ${lp[key]}`);
+        log("PLAYER", "Found localPlayer." + key + ": " + lp[key]);
         if (!window.__localPlayerId && (key === "id" || key === "playerId" || key === "userId" || key === "uid")) {
           window.__localPlayerId = String(lp[key]);
           log("PLAYER", "Local player ID set: " + lp[key]);
@@ -19,12 +22,89 @@ function inspectLocalPlayerForId(gameApp: any): void {
       }
     }
 
-    // Dump all enumerable keys for discovery
     const allKeys = Object.keys(lp);
     log("PLAYER", "localPlayer keys: " + allKeys.join(", "));
   } catch (e: any) {
     log("PLAYER", "inspectLocalPlayer error: " + e.message);
   }
+}
+
+function hookAppClass(AppClass: any): void {
+  // Hook loadScene on prototype to capture scene templates
+  const origLoadScene = AppClass.prototype.loadScene;
+  if (origLoadScene && !AppClass.prototype.__ltLoadSceneHooked) {
+    AppClass.prototype.__ltLoadSceneHooked = true;
+    AppClass.prototype.loadScene = function (opts: any) {
+      if (opts?.scene?.name) {
+        if (!window.__sceneCache) window.__sceneCache = new Map();
+        window.__sceneCache.set(opts.scene.name, opts.scene);
+        log("SCENE", "Captured via loadScene hook: " + opts.scene.name);
+      }
+      return origLoadScene.call(this, opts);
+    };
+    log("WEBPACK", "loadScene prototype hook installed");
+  }
+
+  function onGameAppReady(instance: any): void {
+    if (window.__gameApp) return;
+    window.__gameApp = instance;
+    log("WEBPACK", "gameApp CAPTURED!");
+    inspectLocalPlayerForId(instance);
+    extractBurrowTemplatesGeneric();
+  }
+
+  function waitForLocalPlayer(instance: any): void {
+    if (instance.localPlayer !== undefined) {
+      onGameAppReady(instance);
+      return;
+    }
+    // localPlayer is assigned after _instance — poll until it appears
+    let polls = 0;
+    const timer = setInterval(() => {
+      polls++;
+      if (instance.localPlayer !== undefined) {
+        clearInterval(timer);
+        onGameAppReady(instance);
+      } else if (polls >= 60) {
+        clearInterval(timer);
+        // Capture anyway — localPlayer may be set later during scene load
+        onGameAppReady(instance);
+        log("WEBPACK", "gameApp captured without localPlayer (timeout)");
+      }
+    }, 500);
+  }
+
+  // Hook _instance setter to capture gameApp when it's instantiated
+  let _real = AppClass._instance;
+  Object.defineProperty(AppClass, "_instance", {
+    get() { return _real; },
+    set(v: any) {
+      _real = v;
+      if (v && !window.__gameApp) {
+        waitForLocalPlayer(v);
+      }
+    },
+    configurable: true,
+  });
+
+  if (_real) {
+    waitForLocalPlayer(_real);
+  } else {
+    log("WEBPACK", "gameApp not yet instantiated, waiting for setter...");
+  }
+}
+
+let appClassHooked = false;
+
+function runCapture(require: any): boolean {
+  const result = captureAll(require);
+
+  if (result.appClass && !appClassHooked) {
+    appClassHooked = true;
+    hookAppClass(result.appClass);
+  }
+
+  return result.allStores && result.hasGlobals && result.hasSocket && appClassHooked;
 }
 
 log("WEBPACK", "Setting up webpack spy...");
@@ -45,131 +125,76 @@ log(
 
   log("WEBPACK", "Chunks array initialized, original push: " + typeof _origPush);
 
-  chunks.push = function (chunk: any) {
-    pushCount++;
-    log(
-      "WEBPACK",
-      "push #" + pushCount + ", chunk IDs: " +
-        (Array.isArray(chunk) && chunk[0] ? JSON.stringify(chunk[0]) : "unknown"),
-    );
+  function injectSpyModule(): void {
+    if (hooked) return;
+    hooked = true;
+    try {
+      chunks.push([
+        ["lt-spy"],
+        {
+          "lt-spy-mod": function (_module: any, _exports: any, require: any) {
+            log("WEBPACK", "Spy module executing, require available: " + typeof require);
+            window.__wpRequire = require;
 
-    const result = _origPush.call(chunks, chunk);
+            if (runCapture(require)) {
+              log("WEBPACK", "All targets captured immediately");
+              return;
+            }
 
-    if (!hooked) {
-      hooked = true;
-      log("WEBPACK", "First real webpack push detected, injecting spy module...");
-      try {
-        chunks.push([
-          ["lt-spy"],
-          {
-            "lt-spy-mod": function (_module: any, _exports: any, require: any) {
-              log("WEBPACK", "Spy module executing, require available: " + typeof require);
-              window.__wpRequire = require;
-              try {
-                log("WEBPACK", "Trying require(20493)...");
-                const appModule = require(20493);
-                log(
-                  "WEBPACK",
-                  "require(20493) result: " +
-                    typeof appModule + " " +
-                    (appModule ? Object.keys(appModule).join(",") : "null"),
-                );
-                if (appModule && appModule.App) {
-                  const AppClass = appModule.App;
-                  log("WEBPACK", "AppClass found, _instance: " + typeof AppClass._instance);
-                  let _real = AppClass._instance;
-                  Object.defineProperty(AppClass, "_instance", {
-                    get() {
-                      return _real;
-                    },
-                    set(v: any) {
-                      _real = v;
-                      log(
-                        "WEBPACK",
-                        "AppClass._instance SET, has localPlayer: " +
-                          (v ? v.localPlayer !== undefined : false),
-                      );
-                      if (v && v.localPlayer !== undefined) {
-                        window.__gameApp = v;
-                        log("WEBPACK", "gameApp CAPTURED!");
-                        inspectLocalPlayerForId(v);
-                      }
-                    },
-                    configurable: true,
-                  });
-                  if (_real && _real.localPlayer !== undefined) {
-                    window.__gameApp = _real;
-                    log("WEBPACK", "gameApp captured immediately (already instantiated)");
-                    inspectLocalPlayerForId(_real);
-                  } else {
-                    log("WEBPACK", "gameApp not yet instantiated, waiting for setter...");
-                  }
-                } else {
-                  log("WEBPACK", "App class not found in module 20493");
+            // Retry: some modules aren't loaded yet
+            let retries = 0;
+            const interval = setInterval(() => {
+              retries++;
+              if (runCapture(require)) {
+                clearInterval(interval);
+                log("WEBPACK", "All targets captured (retry #" + retries + ")");
+              } else if (retries >= 30) {
+                clearInterval(interval);
+                const missing = [];
+                if (!window.__gameApp) missing.push("gameApp");
+                if (!window.__gameGlobals) missing.push("GameGlobals");
+                if (!window.__socketClient) missing.push("SocketClient");
+                const stores = window.__stores || {};
+                for (const k of ["useUserData", "useSettings", "useUsersStore", "useLobbyStore",
+                  "useMissionStore", "useFocusSession", "useFishingStats", "useModalStore",
+                  "useFishingFrenzy", "useFriendPresence"] as const) {
+                  if (!stores[k]) missing.push(k);
                 }
-              } catch (e: any) {
-                log("WEBPACK", "require(20493) failed: " + e.message + " - setting up retry");
-                let retrySetterInstalled = false;
-                window.__ltSpyRetry = function () {
-                  try {
-                    const appModule = require(20493);
-                    if (appModule && appModule.App) {
-                      const AppClass = appModule.App;
-
-                      // Direct polling: check _instance right now
-                      const inst = AppClass._instance;
-                      if (inst && inst.localPlayer !== undefined) {
-                        window.__gameApp = inst;
-                        log("WEBPACK", "gameApp captured via retry (polling)");
-                        inspectLocalPlayerForId(inst);
-                        return true;
-                      }
-
-                      // Install setter only once for future assignments
-                      if (!retrySetterInstalled) {
-                        retrySetterInstalled = true;
-                        let _real = inst;
-                        Object.defineProperty(AppClass, "_instance", {
-                          get() {
-                            return _real;
-                          },
-                          set(v: any) {
-                            _real = v;
-                            if (v && v.localPlayer !== undefined) {
-                              window.__gameApp = v;
-                              log("WEBPACK", "gameApp CAPTURED via setter!");
-                              inspectLocalPlayerForId(v);
-                            }
-                          },
-                          configurable: true,
-                        });
-                        log("WEBPACK", "Retry setter installed, polling continues...");
-                      }
-
-                      // Not captured yet, keep retrying
-                      return false;
-                    }
-                  } catch (e2: any) {
-                    log("WEBPACK", "Retry failed: " + e2.message);
-                  }
-                  return false;
-                };
+                if (missing.length > 0) {
+                  log("WEBPACK", "Missing after 30 retries: " + missing.join(", "));
+                }
               }
-            },
+            }, 1000);
           },
-          function (require: any) {
-            log("WEBPACK", "Spy init function called");
-            require("lt-spy-mod");
-          },
-        ]);
-        log("WEBPACK", "Spy module injected successfully");
-      } catch (e: any) {
-        log("WEBPACK", "Failed to inject spy module: " + e.message);
-      }
+        },
+        function (require: any) {
+          log("WEBPACK", "Spy init function called");
+          require("lt-spy-mod");
+        },
+      ]);
+      log("WEBPACK", "Spy module injected successfully");
+    } catch (e: any) {
+      log("WEBPACK", "Failed to inject spy module: " + e.message);
     }
+  }
+
+  chunks.push = function (...args: any[]) {
+    pushCount++;
+    log("WEBPACK", "push #" + pushCount + " intercepted");
+    const result = _origPush.apply(chunks, args);
+    injectSpyModule();
     return result;
   };
+
+  // Fallback: if all chunks were already loaded before userscript, no push fires
+  setTimeout(() => {
+    if (!hooked) {
+      log("WEBPACK", "No push detected after 2s, injecting spy module directly...");
+      injectSpyModule();
+    }
+  }, 2000);
+
   log("WEBPACK", "webpackChunk.push hooked");
 })();
 
-export {};
+export { extractBurrowTemplatesGeneric as extractBurrowTemplates };

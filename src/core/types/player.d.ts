@@ -26,6 +26,10 @@ export interface LocalPlayer {
     takeOutFishingRod?: (direction: string) => void;
     removeFishingRod?: () => void;
   };
+  isInGoKart?: boolean;
+  kartVariant?: string;
+  enterGoKart?: (variant?: string) => void;
+  exitGoKart?: () => void;
   sit: (pose: string) => void;
   unsit?: (opts: { withCooldown: boolean; emitUnsit: boolean }) => void;
   setSitAnimation?: (anim: string) => void;
@@ -44,9 +48,34 @@ export interface OtherPlayer {
   sitAnimation?: string;
 }
 
+export interface ActiveBurrow {
+  id: string;
+  privacyLevel: string;
+  template: string;
+}
+
 export interface PlayerProfile {
   displayName: string;
   username: string;
+  activeBurrow?: ActiveBurrow | null;
+}
+
+export interface FriendPresence {
+  online: boolean;
+  lobby: string;
+  displayName: string;
+  username: string;
+}
+
+export interface InputManager {
+  disableInputEvents: Set<string>;
+  disableTouchInput: boolean;
+  movement: { x: number; y: number };
+  keyboardMovement: { x: number; y: number };
+  touchMovement: { x: number; y: number };
+  stopInput: (freeze: boolean, reason: string) => void;
+  isFrozen: () => boolean;
+  isMoving: () => boolean;
 }
 
 export interface GameApp {
@@ -55,9 +84,18 @@ export interface GameApp {
   currentCamera: {
     moveCameraToPlayer: (instant: boolean) => void;
   };
+  input?: InputManager;
   currentScene?: GameScene;
   currentServerRoomId?: string;
   interactables?: Record<string, { onInteract?: () => void }>;
-  loadScene?: (opts: { scene: GameScene }) => void;
+  loadScene?: (opts: {
+    scene: GameScene;
+    burrow?: { id: string; subRoom: number };
+    position?: { x: number; y: number; direction: string };
+    doNotGetMapData?: boolean;
+  }) => void;
   backToMainScene?: () => void;
+  isFirstLoad?: boolean;
+  hasInitiallyJoinedRoom?: boolean;
+  loadingScene?: boolean;
 }
