@@ -75,7 +75,7 @@ export function renderFocus(hud: HTMLElement, renderMainFn: RenderFn, pages: Rec
     mkHeader("Focus", true) +
     '<div class="lt-body" style="padding:4px 0;">' +
 
-    '<div class="lt-stat-row" style="font-size:20px;font-weight:700;padding:8px 14px;color:#e0d8f0;">' +
+    '<div class="lt-stat-row" style="font-size:14px;font-weight:700;padding:6px 12px;color:#e0d8f0;">' +
     '<span>Daily Earnings</span><span id="lt-focus-earnings">' + earnings.toLocaleString() + " / " + cap.toLocaleString() + "</span></div>" +
 
     '<div style="padding:0 14px 8px;">' +
@@ -94,7 +94,7 @@ export function renderFocus(hud: HTMLElement, renderMainFn: RenderFn, pages: Rec
     '<div class="lt-sep"></div>' +
 
     '<button class="lt-action ' + (isRunning ? "lt-danger" : "lt-success") + '" id="lt-focus-toggle">' +
-    (isRunning ? "STOP" : "START") +
+    (isRunning ? "Stop" : "Start") +
     "</button>" +
     '<button class="lt-action" id="lt-focus-hide-ui" style="margin-top:4px;">' +
     (isGameTimerHidden() ? "Show Game Timer" : "Hide Game Timer") +

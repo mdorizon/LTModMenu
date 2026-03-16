@@ -104,8 +104,8 @@ export async function sellAll(): Promise<{ sold: number; gold: number } | null> 
 // ── UI ──
 
 export function renderSellAll(): string {
-  return '<button class="lt-action lt-danger" id="lt-sell-all" style="flex:0 0 auto;margin:0;width:auto;padding:10px 12px;font-size:12px;">' +
-    'SELL ALL</button>';
+  return '<button class="lt-action lt-danger" id="lt-sell-all" style="flex:0 0 auto;margin:0;width:auto;padding:7px 10px;font-size:11px;">' +
+    'Sell All</button>';
 }
 
 export function bindSellAll(): void {
