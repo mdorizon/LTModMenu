@@ -5,6 +5,13 @@ on:
     tags:
       - "v*"
 
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. v3.0.0)"
+        required: true
+        type: string
+
 permissions:
   contents: write
   pages: write
@@ -15,6 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: oven-sh/setup-bun@v2
 
@@ -38,6 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
 
       - name: Download build artifacts
@@ -49,7 +59,11 @@ jobs:
       - name: Generate release notes
         id: notes
         run: |
-          CURRENT_TAG="${GITHUB_REF#refs/tags/}"
+          if [ -n "${{ inputs.tag }}" ]; then
+            CURRENT_TAG="${{ inputs.tag }}"
+          else
+            CURRENT_TAG="${GITHUB_REF#refs/tags/}"
+          fi
           PREV_TAG=$(git tag --sort=-v:refname | grep -v "^${CURRENT_TAG}$" | head -1)
 
           if [ -z "$PREV_TAG" ]; then
@@ -98,6 +112,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
           files: dist/ltmodmenu.user.js
           body: ${{ steps.notes.outputs.body }}
 
