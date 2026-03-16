@@ -63,6 +63,7 @@ Chaque feature a `ui/*-view.ts` (fonction `render*(hud, renderMainFn, pages)`) e
 | Lobby switch | `src/core/docs/lobby-switch-internals.md` |
 | Missions | `src/features/missions/docs/missions-internals.md` |
 | Session restore | `src/features/session/docs/session-restore-internals.md` |
+| Sons/SFX/musique | `src/features/sounds/docs/sounds-internals.md` |
 | Exploits non implementes | `src/core/docs/game-changers.md` |
 
 Analyses webpack du client dans `gameFiles/analysis/` :

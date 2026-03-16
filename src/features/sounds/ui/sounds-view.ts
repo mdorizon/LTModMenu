@@ -6,6 +6,7 @@ import {
   toggleCategory,
   applyPreset,
   isHooked,
+  isTagged,
   isMusicMuted,
   toggleMusic,
   isMusicPaused,
@@ -98,7 +99,9 @@ function buildBody(testMode: boolean): string {
   let html = "";
 
   if (!isHooked()) {
-    html += '<div class="lt-sm-warn">Waiting for sound hook...</div>';
+    html += '<div class="lt-sm-warn">Waiting for Howl...</div>';
+  } else if (!isTagged()) {
+    html += '<div class="lt-sm-warn lt-sm-warn-soft">Sound identification pending — muting may not work yet</div>';
   }
 
   const local = isLocalMode();

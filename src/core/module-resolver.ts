@@ -203,6 +203,8 @@ export function findPlaySoundFn(require: any): ((name: string) => void) | null {
 function _findPlaySoundFn(require: any): ((name: string) => void) | null {
   for (const [, exp] of iterateModules(require)) {
     if (!exp || typeof exp !== "object") continue;
+
+    // v1: sound map ({Sell, Cast, Reel}) + play function co-exported
     let hasSfxMap = false;
     let fn: ((name: string) => void) | null = null;
     for (const [, val] of safeKeys(exp)) {
@@ -214,6 +216,16 @@ function _findPlaySoundFn(require: any): ((name: string) => void) | null {
       }
     }
     if (hasSfxMap && fn) return fn;
+
+    // v2: only the play function is exported, sound map is in closure.
+    // Detect by source: references sfxVolume setting, calls .rate() and .play()
+    for (const [, val] of safeKeys(exp)) {
+      if (typeof val !== "function") continue;
+      const src = val.toString();
+      if (src.includes("sfxVolume") && src.includes(".rate(") && src.includes(".play()")) {
+        return val as (name: string) => void;
+      }
+    }
   }
   return null;
 }
