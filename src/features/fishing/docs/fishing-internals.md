@@ -1,6 +1,6 @@
 # Fishing System Internals (lofi.town)
 
-> Reverse-engineered le 2026-03-11, mis a jour le 2026-03-15 (post-update v2).
+> Reverse-engineered le 2026-03-11, mis a jour le 2026-03-17 (background fishing, DOM events, pieges doublon).
 > Ce fichier est une reference pour Claude (IA) — format optimise pour contexte LLM, pas pour lecture humaine.
 
 ## Acces au FishingManager
@@ -104,8 +104,8 @@ er({
 // Dismiss via Space apres ~917ms d'animation (j0=11 frames, Bb=0.2 anim speed)
 // NE PAS utiliser signal "scene-load" : nettoie l'overlay mais laisse la card PixiJS visible (bug visuel)
 
-// blockPixiMenuEvents est un Set<string> sur cs.instance
-// Verifier si result card active : cs.instance.blockPixiMenuEvents.has("fishingResult")
+// blockPixiMenuEvents est un Array<string> sur cs.instance (etait Set en v1, Array depuis v2)
+// Verifier si result card active : cs.instance.blockPixiMenuEvents.includes("fishingResult")
 ```
 
 ## Store 24795 (seat type, nouveau en v2)
@@ -166,9 +166,34 @@ Si true, auto-solve + pas de minigame. Reserve aux abonnes Cozier ($9.99/mois).
 
 Forcer `focusCommitted=true` cote client ne fonctionne PAS : le serveur valide le tier et ne repond pas avec `fishCaught` si le joueur n'est pas Cozier. Ticket separe pour investigation.
 
+## Background fishing
+
+Chrome throttle setTimeout/setInterval a 1 execution/min apres **5 min** de background. Les Web Workers sont soumis a la meme politique (contrairement a une idee repandue). RAF est suspendu → GSAP gele.
+
+Consequences sur le bot :
+- Attentes timer-based (`sleep(100)`) deviennent `sleep(~60000)` → loop figee
+- `reelButton.hide()` (GSAP tween) ne s'execute pas → `sprite.visible` reste `true`
+- Result cards creees par `er()` s'accumulent en orphelins dans `uiContainer` (GSAP ne joue pas l'anim out, ni l'anim in complete)
+
+Solutions implementees dans `fishing-loop.ts` :
+- `waitForBite()` et `waitAndDismissResult()` : **event-driven** via DOM events dispatches par `websocket-hook.ts` (voir section ci-dessous). Messages WS non throttles → resolution instantanee meme apres 30 min background.
+- `destroyOrphanedResultCards()` : appelee au retour foreground via `visibilitychange`. Identifie les orphelins par `zIndex:11 && cursor:"pointer"` sur les enfants de `fm.fishingUI.parent`.
+- `fm.reelButton.sprite.visible = false` force apres `stopFishing()` pour eviter re-detection de challenge stale.
+
+## DOM events (dispatches par websocket-hook)
+
+```js
+// Dispatches sur document par websocket-hook.ts
+"lt:fish-caught"    — quand fishCaught WS recu ET joueur assis. detail = {fish:{...}, challenge:"hash32"}
+"lt:fishing-result" — quand fishing-result WS recu. detail = {id, userId, name, weight, isShiny, ...}
+```
+
+Ces events ne sont PAS throttles par Chrome. Ils se resolvent dans la meme microtask que le message WS.
+Utiliser ces events (pas le polling PixiJS) pour toute detection dans le bot.
+
 ## Pieges connus
 
-- `fishCaught` est BROADCAST : pas de userId, on recoit les bites de tous. NE PAS utiliser `window.__fishBite` pour detecter notre poisson. Utiliser `fm.reelButton.sprite.visible`.
+- `fishCaught` est BROADCAST : pas de userId, on recoit les bites de tous. Utiliser l'event DOM `lt:fish-caught` pour detecter notre poisson (dispatche uniquement si `localPlayer.currentSeatId` truthy). `window.__fishBite` reste dispo pour debug console.
 - `localPlayer` n'a PAS de propriete `fishingMinigame` ni `minigame`. Ces proprietes n'existent pas sur lofi.town. Tout est dans FishingManager.
 - `castButton.press()` ne lance PAS la peche. Il faut `fm.startFishing()`.
 - `reelButton.press()/release()` ne lance PAS le minigame. Il faut `fm.miniGame()`.
@@ -179,6 +204,8 @@ Forcer `focusCommitted=true` cote client ne fonctionne PAS : le serveur valide l
 - `fishing-result` WS event a un champ `id` (fish record ID) qui n'est PAS un player ID. Le filtre foreign ID du WS hook doit laisser passer cet event (ajoute a `localEvents`).
 - En mode focus, `onFishingResult` ne montre PAS de result card et fait `canCatchFish=true` directement. Pas besoin de dismiss.
 - `startFishing()` en v2 appelle `takeOutFishingRod(direction)` — nouveau, montre le sprite de canne.
+- `fishCaught` BROADCAST peut arriver en **doublon** depuis le serveur (meme poisson, meme challenge, ~4s d'ecart — observe plusieurs fois). Toujours verifier `challenge !== lastSolvedChallenge` avant de traiter.
+- `reelButton.sprite.visible` reste `true` en background apres GSAP freeze. `reelButton.hide()` est un tween qui ne s'execute pas sans RAF. Forcer `fm.reelButton.sprite.visible = false` manuellement apres `stopFishing()` pour eviter que `waitForBite()` detecte un challenge deja soumis au recast suivant.
 
 ## WS events
 

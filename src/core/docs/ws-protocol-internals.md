@@ -148,8 +148,8 @@ Valeurs de `room` observees :
 #### Peche
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `fishCaught` | `{challengeHash, difficultyUp, ...}` | Un poisson mord — peut etre local ou autre joueur |
-| `fishing-result` | `{userId, fishName, rarity, gold, ...}` | Resultat de peche — verifier `userId` pour filtrer |
+| `fishCaught` | `{fish:{name,rarityTier,weight,gold,shiny}, challenge:"hash32"}` | Un poisson mord — broadcast toute la room, peut etre local ou autre joueur. Peut arriver en doublon (meme challenge, ~4s d'ecart). |
+| `fishing-result` | `{id, userId, name, weight, isShiny, isSold, isInAquarium, createdAt}` | Resultat de peche — toujours local (response directe serveur), pas de filtre userId |
 | `fishingFrenzyUpdate` | `{frenzyActive, frenzyMultiplier, ...}` | Mise a jour de l'event fishing frenzy |
 
 #### Divers
@@ -204,6 +204,22 @@ Quand le joueur switch de lobby dans l'UI du jeu :
 - `friendPresences` dans `connected` donne le LOBBY de chaque ami, pas leur room
 - `updateRoom` donne la ROOM d'un joueur, mais seulement dans NOTRE lobby
 - Pas de visibilite cross-lobby depuis le client
+
+## DOM events dispatches par le hook
+
+`websocket-hook.ts` dispatche des CustomEvents sur `document` pour permettre une detection event-driven sans polling (contourne le throttling Chrome en background).
+
+```js
+"lt:fish-caught"    — dispatch quand fishCaught recu ET localPlayer.currentSeatId truthy
+                      detail = {fish:{name,rarityTier,weight,gold,shiny}, challenge:"hash32"}
+
+"lt:fishing-result" — dispatch quand fishing-result recu
+                      detail = {id, userId, name, weight, isShiny, isSold, isInAquarium, createdAt}
+
+"lt:players-changed" — dispatch quand playerProfiles ou friendIds change (initOtherPlayers, join/leave, etc.)
+```
+
+Ces events se resolvent dans la meme microtask que le message WS entrant — pas de throttling Chrome, pas de RAF requis.
 
 ## Pieges connus
 

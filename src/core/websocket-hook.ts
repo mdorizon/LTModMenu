@@ -345,6 +345,7 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
               log("WS", ">>> FISH CAUGHT EVENT <<<");
               window.__fishBite = eventData;
               log("WS", "Fish bite data: " + JSON.stringify(eventData).substring(0, 200));
+              document.dispatchEvent(new CustomEvent("lt:fish-caught", { detail: eventData }));
             } else {
               logWsAll("RECV [other:fishCaught]: " + data);
               return;
@@ -366,14 +367,10 @@ log("WS", "Original WebSocket: " + typeof OrigWS);
           }
 
           if (eventName === "fishing-result" && eventData) {
-            const myId = window.__localPlayerId;
-            if (myId && eventData.userId && String(eventData.userId) !== myId) {
-              logWsAll("RECV [other:fishing-result]: " + data);
-              return;
-            }
             log("WS", ">>> FISHING RESULT EVENT <<<");
             window.__lastFish = eventData;
             log("WS", "Fish result: " + JSON.stringify(eventData).substring(0, 200));
+            document.dispatchEvent(new CustomEvent("lt:fishing-result", { detail: eventData }));
           }
         } catch (_e) {
           // Not parseable as event, log if short enough

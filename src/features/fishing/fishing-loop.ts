@@ -13,6 +13,7 @@ const RARITY_COLORS: Record<string, string> = {
 
 let fishingLoopRunning = false;
 let skipMinigame = loadData<boolean>("skipMinigame", false);
+let lastSolvedChallenge = "";
 
 export function getSkipMinigame(): boolean { return skipMinigame; }
 export function setSkipMinigame(v: boolean): void {
@@ -140,6 +141,17 @@ export function updateHUD(): void {
   }
 }
 
+function destroyOrphanedResultCards(): void {
+  const fm = getFishingManager();
+  const uic = (fm?.fishingUI as any)?.parent;
+  const kids: any[] = uic?.children ?? uic?._children ?? [];
+  const orphans = kids.filter((c: any) => c.zIndex === 11 && c.cursor === "pointer");
+  for (const card of orphans) {
+    try { card.destroy(); } catch (_) {}
+  }
+  if (orphans.length > 0) log("BOT", "Destroyed " + orphans.length + " orphaned result cards");
+}
+
 function isLocalPlayerSeated(): boolean {
   const lp = window.__gameApp?.localPlayer;
   if (!lp) return false;
@@ -162,29 +174,49 @@ function castLine(): boolean {
   return true;
 }
 
-// ── Step 2: Wait for fish bite (reel button visible) ──
-async function waitForBite(): Promise<boolean> {
+// ── Step 2: Wait for fish bite (event-driven — no timer dependency) ──
+// Uses lt:fish-caught DOM event dispatched by websocket-hook on fishCaught WS message.
+// Fallback watchdog runs every 3s (throttled in background is fine — it's only for
+// cancellation detection, not for detecting the bite itself).
+function waitForBite(): Promise<boolean> {
   const fm = getFishingManager();
-  if (!fm) return false;
-  const start = Date.now();
+  if (!fm) return Promise.resolve(false);
   log("BOT", "[2] Waiting for fish bite...");
 
-  while (fishingLoopRunning && !window.__botPaused) {
-    if (fm.reelButton?.sprite?.visible) {
-      log("BOT", "[2] Fish bite! " + (fm.currentFish?.name || "unknown"));
-      return true;
-    }
-    if (!fm.isFishing) {
-      log("BOT", "[2] Stopped fishing unexpectedly");
-      return false;
-    }
-    if (Date.now() - start > 90000) {
-      log("BOT", "[2] TIMEOUT 90s waiting for bite");
-      return false;
-    }
-    await sleep(window.__fishingFrenzyActive ? 20 : 100);
+  if (fm.reelButton?.sprite?.visible && fm.currentChallenge !== lastSolvedChallenge) {
+    log("BOT", "[2] Fish bite! " + (fm.currentFish?.name || "unknown"));
+    return Promise.resolve(true);
   }
-  return false;
+
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+    const settle = (val: boolean) => {
+      if (settled) return;
+      settled = true;
+      document.removeEventListener("lt:fish-caught", onBite as EventListener);
+      clearInterval(watchdog);
+      resolve(val);
+    };
+
+    const onBite = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.challenge && detail.challenge === lastSolvedChallenge) {
+        log("BOT", "[2] Duplicate fishCaught ignored (challenge already solved)");
+        return;
+      }
+      log("BOT", "[2] Fish bite! " + (detail?.fish?.name || "unknown"));
+      settle(true);
+    };
+
+    document.addEventListener("lt:fish-caught", onBite as EventListener);
+
+    const start = Date.now();
+    const watchdog = setInterval(() => {
+      if (!fishingLoopRunning || window.__botPaused) { settle(false); return; }
+      if (!fm.isFishing) { log("BOT", "[2] Stopped fishing unexpectedly"); settle(false); return; }
+      if (Date.now() - start > 90000) { log("BOT", "[2] TIMEOUT 90s waiting for bite"); settle(false); return; }
+    }, 3000);
+  });
 }
 
 function isBackground(): boolean {
@@ -224,6 +256,7 @@ async function playMinigameBackground(fm: any): Promise<boolean> {
   // in the same tick as getFishingResult. The server can race between
   // the two messages and discard the result. We defer stopFishing()
   // until after fishing-result arrives (in waitAndDismissResult).
+  lastSolvedChallenge = fm.currentChallenge || "";
   const origStopFishing = fm.stopFishing;
   fm.stopFishing = () => {};
   fm.win();
@@ -292,21 +325,51 @@ async function playMinigameForeground(fm: any): Promise<boolean> {
 }
 
 // ── Step 4: Wait for result and dismiss the result card ──
+// Event-driven via lt:fishing-result DOM event (dispatched by websocket-hook on fishing-result WS message).
 async function waitAndDismissResult(): Promise<{ id: string; name: string; weight: number; isShiny: boolean } | null> {
-  const start = Date.now();
   log("BOT", "[4] Waiting for result...");
 
-  while (fishingLoopRunning) {
-    if (window.__lastFish) break;
-    if (Date.now() - start > 15000) {
-      log("BOT", "[4] TIMEOUT waiting for fishing-result");
-      break;
-    }
-    await sleep(100);
+  // Already received before we got here
+  if (window.__lastFish) {
+    const quick = window.__lastFish;
+    window.__lastFish = null;
+    // fall through to dismiss logic below
+    return finishResult(quick);
   }
 
-  const fishData = window.__lastFish;
+  const fishData = await new Promise<any>((resolve) => {
+    let settled = false;
+    const settle = (val: any) => {
+      if (settled) return;
+      settled = true;
+      document.removeEventListener("lt:fishing-result", onResult as EventListener);
+      clearInterval(watchdog);
+      resolve(val);
+    };
+
+    const onResult = (e: Event) => {
+      const data = (e as CustomEvent).detail;
+      window.__lastFish = null;
+      settle(data);
+    };
+
+    document.addEventListener("lt:fishing-result", onResult as EventListener);
+
+    const start = Date.now();
+    const watchdog = setInterval(() => {
+      if (!fishingLoopRunning) { settle(null); return; }
+      if (Date.now() - start > 30000) {
+        log("BOT", "[4] TIMEOUT waiting for fishing-result");
+        settle(null);
+      }
+    }, 3000);
+  });
+
   window.__lastFish = null;
+  return finishResult(fishData);
+}
+
+async function finishResult(fishData: any): Promise<{ id: string; name: string; weight: number; isShiny: boolean } | null> {
 
   // Clean up fishing state now that the server has responded.
   // In background bypass, stopFishing() was deferred to avoid a race condition.
@@ -316,26 +379,32 @@ async function waitAndDismissResult(): Promise<{ id: string; name: string; weigh
     fm.stopFishing();
     if (fm.castButton?.hide) fm.castButton.hide();
   }
+  // Force-hide reel button: GSAP animations are frozen in background, so
+  // reelButton.hide() may not run. Without this, the next waitForBite() fallback
+  // check sees visible=true and immediately re-uses a stale challenge.
+  if (fm?.reelButton?.sprite) fm.reelButton.sprite.visible = false;
 
-  // Dismiss the result card with retries.
-  // The game installs the Space listener after a ~917ms animation setTimeout,
-  // which gets throttled in background tabs (up to 1/min after 5min inactive).
-  // Extra Space presses are safe: the dismiss function is idempotent,
-  // and isFishing is false so the cast keybind handler ignores Space.
+  // Dismiss the result card.
+  // In foreground: dispatch Space 3x (game installs listener after ~917ms animation).
+  // In background: skip Space (its setTimeout is throttled to 1/min after 5min, adding 3min delay).
+  //   Instead, register a visibilitychange listener to destroy orphaned PixiJS card containers on return.
   if (fishData) {
-    for (let i = 0; i < 3; i++) {
-      await sleep(500);
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: " ", code: "Space" }));
-    }
-
-    // In background, the game's setTimeout may be heavily throttled (>5min = 1/min).
-    // The Space listener might never be installed within our retry window.
-    // Force-clean the overlay and input state to prevent cards from stacking.
-    if (isBackground()) {
+    if (!isBackground()) {
+      for (let i = 0; i < 3; i++) {
+        await sleep(500);
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: " ", code: "Space" }));
+      }
+    } else {
       const app = window.__gameApp as any;
       if (app?.hideBlackOverlay) app.hideBlackOverlay();
-      if (app?.blockPixiMenuEvents?.delete) app.blockPixiMenuEvents.delete("fishingResult");
       fm?.input?.stopInput?.(false, "waiting-for-result");
+      const onVisible = () => {
+        if (!document.hidden) {
+          document.removeEventListener("visibilitychange", onVisible);
+          destroyOrphanedResultCards();
+        }
+      };
+      document.addEventListener("visibilitychange", onVisible);
     }
 
     log("BOT", "[4] Result card dismissed");
