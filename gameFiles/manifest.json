@@ -1,7 +1,7 @@
 {
-  "lastChecked": "2026-03-20T16:46:16.911Z",
-  "lastChanged": "2026-03-20T16:46:16.914Z",
-  "buildId": "FGK33LFHLKb1iBBOc6TB0",
+  "lastChecked": "2026-03-23T16:01:00.570Z",
+  "lastChanged": "2026-03-23T16:01:00.572Z",
+  "buildId": "zTcRaiYGQdZ2b6c8nRbn9",
   "chunks": {
     "18": {
       "filename": "/_next/static/chunks/18-bdbe4008f006778b.js",
@@ -689,9 +689,28 @@
         99838
       ]
     },
+    "4685": {
+      "filename": "/_next/static/chunks/4685-668bf6d2990172fa.js",
+      "size": 842626,
+      "modules": [
+        9502,
+        20079,
+        35345,
+        36884,
+        43445,
+        46670,
+        48219,
+        76156,
+        80766,
+        84685,
+        85368,
+        88390,
+        99463
+      ]
+    },
     "5677": {
-      "filename": "/_next/static/chunks/5677-843b931ed981c6ee.js",
-      "size": 717068,
+      "filename": "/_next/static/chunks/5677-160134b5f72c2018.js",
+      "size": 718076,
       "modules": [
         1989,
         3760,
@@ -885,28 +904,22 @@
         99524
       ]
     },
-    "9884": {
-      "filename": "/_next/static/chunks/9884-6d3408e893d42b23.js",
-      "size": 792299,
+    "global": {
+      "filename": "/_next/static/chunks/app/global-error-fa293ae0dba33627.js",
+      "size": 5865,
       "modules": [
-        9502,
-        20079,
-        35345,
-        36884,
-        43445,
-        46670,
-        48219,
-        76156,
-        80766,
-        85368,
-        88390,
-        99463,
-        99884
+        10550,
+        12479,
+        21346,
+        39626,
+        56065,
+        73649,
+        98536
       ]
     },
-    "87c73c54": {
-      "filename": "/_next/static/chunks/87c73c54-09e1ba5c70e60a51.js",
-      "size": 173023,
+    "25c8a87d": {
+      "filename": "/_next/static/chunks/25c8a87d-5b76b9f12cd6714f.js",
+      "size": 51344,
       "modules": []
     },
     "990a3170": {
@@ -915,18 +928,25 @@
       "modules": []
     },
     "webpack": {
-      "filename": "/_next/static/chunks/webpack-526efcf5763b6705.js",
+      "filename": "/_next/static/chunks/webpack-4358cfb317b98c26.js",
       "size": 4238,
       "modules": []
     },
-    "25c8a87d": {
-      "filename": "/_next/static/chunks/25c8a87d-5b76b9f12cd6714f.js",
-      "size": 51344,
+    "main": {
+      "filename": "/_next/static/chunks/main-app-afa07681d42ac0de.js",
+      "size": 525,
+      "modules": [
+        84639
+      ]
+    },
+    "polyfills": {
+      "filename": "/_next/static/chunks/polyfills-42372ed130431b0a.js",
+      "size": 112594,
       "modules": []
     },
     "page": {
-      "filename": "/_next/static/chunks/app/page-4bd1ef3c3184696f.js",
-      "size": 502829,
+      "filename": "/_next/static/chunks/app/page-b63899434eefa766.js",
+      "size": 503315,
       "modules": [
         9667,
         12932,
@@ -941,34 +961,14 @@
         79709
       ]
     },
-    "main": {
-      "filename": "/_next/static/chunks/main-app-afa07681d42ac0de.js",
-      "size": 525,
-      "modules": [
-        84639
-      ]
-    },
-    "polyfills": {
-      "filename": "/_next/static/chunks/polyfills-42372ed130431b0a.js",
-      "size": 112594,
+    "87c73c54": {
+      "filename": "/_next/static/chunks/87c73c54-09e1ba5c70e60a51.js",
+      "size": 173023,
       "modules": []
-    },
-    "global": {
-      "filename": "/_next/static/chunks/app/global-error-fa293ae0dba33627.js",
-      "size": 5865,
-      "modules": [
-        10550,
-        12479,
-        21346,
-        39626,
-        56065,
-        73649,
-        98536
-      ]
     }
   },
   "css": [
-    "9aff9cadfa9cd8f1.css",
+    "4b3c0708a2528cb1.css",
     "d38261e715b3739d.css"
   ]
 }
