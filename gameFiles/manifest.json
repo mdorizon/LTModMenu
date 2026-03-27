@@ -1,7 +1,7 @@
 {
-  "lastChecked": "2026-03-26T16:12:20.064Z",
-  "lastChanged": "2026-03-26T16:12:20.067Z",
-  "buildId": "LPbtXX9eDYMZD0e5IgqIP",
+  "lastChecked": "2026-03-27T16:57:16.540Z",
+  "lastChanged": "2026-03-27T16:57:16.541Z",
+  "buildId": "g35mvygl9tNS0o6866JzG",
   "chunks": {
     "18": {
       "filename": "/_next/static/chunks/18-bdbe4008f006778b.js",
@@ -910,18 +910,6 @@
       "size": 173023,
       "modules": []
     },
-    "webpack": {
-      "filename": "/_next/static/chunks/webpack-0c5a042077da0b1c.js",
-      "size": 4238,
-      "modules": []
-    },
-    "main": {
-      "filename": "/_next/static/chunks/main-app-afa07681d42ac0de.js",
-      "size": 525,
-      "modules": [
-        84639
-      ]
-    },
     "global": {
       "filename": "/_next/static/chunks/app/global-error-fa293ae0dba33627.js",
       "size": 5865,
@@ -935,14 +923,31 @@
         98536
       ]
     },
+    "webpack": {
+      "filename": "/_next/static/chunks/webpack-0c5a042077da0b1c.js",
+      "size": 4238,
+      "modules": []
+    },
+    "990a3170": {
+      "filename": "/_next/static/chunks/990a3170-e61d21ce509af372.js",
+      "size": 58447,
+      "modules": []
+    },
     "25c8a87d": {
       "filename": "/_next/static/chunks/25c8a87d-5b76b9f12cd6714f.js",
       "size": 51344,
       "modules": []
     },
+    "main": {
+      "filename": "/_next/static/chunks/main-app-afa07681d42ac0de.js",
+      "size": 525,
+      "modules": [
+        84639
+      ]
+    },
     "page": {
-      "filename": "/_next/static/chunks/app/page-4341bb800584c5f9.js",
-      "size": 513260,
+      "filename": "/_next/static/chunks/app/page-cc8fb3637579675b.js",
+      "size": 513637,
       "modules": [
         9667,
         12932,
@@ -956,11 +961,6 @@
         79709,
         92677
       ]
-    },
-    "990a3170": {
-      "filename": "/_next/static/chunks/990a3170-e61d21ce509af372.js",
-      "size": 58447,
-      "modules": []
     },
     "polyfills": {
       "filename": "/_next/static/chunks/polyfills-42372ed130431b0a.js",
