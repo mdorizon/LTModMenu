@@ -1,7 +1,7 @@
 {
-  "lastChecked": "2026-03-27T16:57:16.540Z",
-  "lastChanged": "2026-03-27T16:57:16.541Z",
-  "buildId": "g35mvygl9tNS0o6866JzG",
+  "lastChecked": "2026-04-03T15:39:57.849Z",
+  "lastChanged": "2026-04-03T15:39:57.852Z",
+  "buildId": "p5l_zM1JeR_yK_q0Ku1ge",
   "chunks": {
     "18": {
       "filename": "/_next/static/chunks/18-bdbe4008f006778b.js",
@@ -583,28 +583,9 @@
         99838
       ]
     },
-    "4685": {
-      "filename": "/_next/static/chunks/4685-db20dfdd279bfb90.js",
-      "size": 842544,
-      "modules": [
-        9502,
-        20079,
-        35345,
-        36884,
-        43445,
-        46670,
-        48219,
-        76156,
-        80766,
-        84685,
-        85368,
-        88390,
-        99463
-      ]
-    },
     "5677": {
-      "filename": "/_next/static/chunks/5677-4e598dc8cf2d27c2.js",
-      "size": 721740,
+      "filename": "/_next/static/chunks/5677-e5c2377cf0ff40f9.js",
+      "size": 729170,
       "modules": [
         1989,
         3760,
@@ -631,6 +612,7 @@
         31133,
         31144,
         31820,
+        34175,
         35634,
         36226,
         39218,
@@ -645,6 +627,7 @@
         46730,
         48278,
         49423,
+        50642,
         50676,
         51496,
         51595,
@@ -798,9 +781,29 @@
         99524
       ]
     },
-    "8373": {
-      "filename": "/_next/static/chunks/8373-abaff9ff34d4297b.js",
-      "size": 416332,
+    "8520": {
+      "filename": "/_next/static/chunks/8520-304021b4d9443927.js",
+      "size": 847839,
+      "modules": [
+        9502,
+        20079,
+        35345,
+        36884,
+        43445,
+        46670,
+        48219,
+        68520,
+        69111,
+        76156,
+        80766,
+        85368,
+        88390,
+        99463
+      ]
+    },
+    "8723": {
+      "filename": "/_next/static/chunks/8723-d1375633dd682293.js",
+      "size": 412813,
       "modules": [
         1797,
         2128,
@@ -823,7 +826,6 @@
         14722,
         15179,
         15554,
-        15863,
         15966,
         18167,
         19576,
@@ -910,6 +912,23 @@
       "size": 173023,
       "modules": []
     },
+    "webpack": {
+      "filename": "/_next/static/chunks/webpack-0f6293eed6f16221.js",
+      "size": 4238,
+      "modules": []
+    },
+    "main": {
+      "filename": "/_next/static/chunks/main-app-afa07681d42ac0de.js",
+      "size": 525,
+      "modules": [
+        84639
+      ]
+    },
+    "25c8a87d": {
+      "filename": "/_next/static/chunks/25c8a87d-5b76b9f12cd6714f.js",
+      "size": 51344,
+      "modules": []
+    },
     "global": {
       "filename": "/_next/static/chunks/app/global-error-fa293ae0dba33627.js",
       "size": 5865,
@@ -923,44 +942,27 @@
         98536
       ]
     },
-    "webpack": {
-      "filename": "/_next/static/chunks/webpack-0c5a042077da0b1c.js",
-      "size": 4238,
-      "modules": []
-    },
-    "990a3170": {
-      "filename": "/_next/static/chunks/990a3170-e61d21ce509af372.js",
-      "size": 58447,
-      "modules": []
-    },
-    "25c8a87d": {
-      "filename": "/_next/static/chunks/25c8a87d-5b76b9f12cd6714f.js",
-      "size": 51344,
-      "modules": []
-    },
-    "main": {
-      "filename": "/_next/static/chunks/main-app-afa07681d42ac0de.js",
-      "size": 525,
-      "modules": [
-        84639
-      ]
-    },
     "page": {
-      "filename": "/_next/static/chunks/app/page-cc8fb3637579675b.js",
-      "size": 513637,
+      "filename": "/_next/static/chunks/app/page-f81af76a80902ad5.js",
+      "size": 512977,
       "modules": [
         9667,
         12932,
         21783,
         32936,
+        49192,
         56286,
         65749,
         69018,
         70891,
         79165,
-        79709,
-        92677
+        79709
       ]
+    },
+    "990a3170": {
+      "filename": "/_next/static/chunks/990a3170-e61d21ce509af372.js",
+      "size": 58447,
+      "modules": []
     },
     "polyfills": {
       "filename": "/_next/static/chunks/polyfills-42372ed130431b0a.js",
@@ -970,6 +972,6 @@
   },
   "css": [
     "d38261e715b3739d.css",
-    "d9f1940e015e4d10.css"
+    "eb45197c5e4915a9.css"
   ]
 }
